@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "GreenLens AI",
+    "slug": "greenlens-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "greenlens",
+    "splash": {
+      "backgroundColor": "#22c55e"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "tech.buildgreen.greenlens",
+      "infoPlist": {
+        "NSCameraUsageDescription": "GreenLens needs camera access to scan construction materials",
+        "NSLocationWhenInUseUsageDescription": "GreenLens needs your location to find nearby recycling centers"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#22c55e"
+      },
+      "package": "tech.buildgreen.greenlens",
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-camera",
+      "expo-image-picker",
+      "expo-location",
+      "expo-asset",
+      "expo-font"
+    ]
+  }
+}
