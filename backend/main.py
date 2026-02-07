@@ -18,7 +18,7 @@ from google import genai
 
 from scraper import scrape_centers, invalidate_cache, SEED_CENTERS
 
-load_dotenv()
+load_dotenv(override=True)
 
 app = FastAPI(
     title="GreenLens AI API",
@@ -59,7 +59,7 @@ CO2_FACTORS = {
 
 
 class ScanResult(BaseModel):
-    materials: list[dict]
+    categories: list[dict]
     total_weight_estimate_lbs: float
     co2_saved_kg: float
     recommended_centers: list[dict]
@@ -186,7 +186,7 @@ You may omit a category if it's 0%. Provide helpful notes about what's in each c
                 c for c in detected_categories if c in center["accepts"]
             ]
             if matching:
-                center_info = {**center, "matching_materials": matching}
+                center_info = {**center, "matching_categories": matching}
                 if latitude and longitude:
                     dlat = abs(center["lat"] - latitude)
                     dlng = abs(center["lng"] - longitude)
@@ -200,7 +200,7 @@ You may omit a category if it's 0%. Provide helpful notes about what's in each c
             recommended.sort(key=lambda x: x.get("distance_miles", 9999))
 
         return ScanResult(
-            materials=analysis.get("materials", []),
+            categories=analysis.get("materials", []),
             total_weight_estimate_lbs=analysis.get("total_weight_estimate_lbs", 0),
             co2_saved_kg=round(total_co2, 2),
             recommended_centers=recommended[:3],
