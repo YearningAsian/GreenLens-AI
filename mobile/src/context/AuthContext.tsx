@@ -63,8 +63,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   const login = useCallback(async (email: string, password: string) => {
-    // Simulate network delay
-    await new Promise((r) => setTimeout(r, 800));
 
     const entry = USERS_DB[email.toLowerCase().trim()];
     if (entry && entry.password === password) {
@@ -76,8 +74,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signup = useCallback(
     async (name: string, email: string, password: string) => {
-      // Simulate network delay
-      await new Promise((r) => setTimeout(r, 1000));
 
       const key = email.toLowerCase().trim();
       if (USERS_DB[key]) {

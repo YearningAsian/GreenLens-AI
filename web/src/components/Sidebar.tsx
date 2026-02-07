@@ -10,7 +10,6 @@ import {
   Building2,
   Users,
   FileText,
-  Settings,
   Leaf,
   Heart,
   ChevronDown,
@@ -21,11 +20,10 @@ const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Scan Analytics", href: "/scans", icon: ScanLine },
   { label: "Job Sites", href: "/sites", icon: Building2 },
-  { label: "Heatmaps", href: "/heatmaps", icon: MapPin },
+  { label: "Heatmap", href: "/heatmaps", icon: MapPin },
   { label: "Impact Reports", href: "/reports", icon: FileText },
   { label: "Leaderboard", href: "/leaderboard", icon: BarChart3 },
   { label: "Volunteers", href: "/workers", icon: Users },
-  { label: "Settings", href: "/settings", icon: Settings },
 ];
 
 export function Sidebar() {

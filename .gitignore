@@ -42,6 +42,9 @@ android/
 !.env.example
 !.env.local.example
 
+# ── Datasets / Training ──────────────────────────────────────
+backend/training/dataset/
+
 # ── Caches ───────────────────────────────────────────────────
 centers_cache.json
 *.log
