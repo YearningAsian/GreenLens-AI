@@ -6,7 +6,8 @@ import { useStateSelection, StateName } from "@/context/StateContext";
 const stateLeaders: Record<StateName, {
   rank: number;
   name: string;
-  site: string;
+  area: string;
+  role: string;
   diverted: string;
   co2: string;
   streak: number;
@@ -16,7 +17,8 @@ const stateLeaders: Record<StateName, {
     {
       rank: 1,
       name: "Marcus Johnson",
-      site: "Midtown Tower",
+      area: "Midtown, Atlanta",
+      role: "Neighborhood Volunteer",
       diverted: "12,450 lbs",
       co2: "2,840 kg",
       streak: 28,
@@ -25,7 +27,8 @@ const stateLeaders: Record<StateName, {
     {
       rank: 2,
       name: "Sarah Chen",
-      site: "Savannah River Plaza",
+      area: "Downtown Savannah",
+      role: "Independent Hauler",
       diverted: "10,220 lbs",
       co2: "2,310 kg",
       streak: 21,
@@ -34,7 +37,8 @@ const stateLeaders: Record<StateName, {
     {
       rank: 3,
       name: "David Williams",
-      site: "Augusta Medical",
+      area: "Harrisburg, Augusta",
+      role: "Neighborhood Volunteer",
       diverted: "8,750 lbs",
       co2: "1,980 kg",
       streak: 14,
@@ -43,7 +47,8 @@ const stateLeaders: Record<StateName, {
     {
       rank: 4,
       name: "Maria Garcia",
-      site: "Macon Heritage",
+      area: "Ingleside, Macon",
+      role: "Government Liaison",
       diverted: "7,100 lbs",
       co2: "1,620 kg",
       streak: 10,
@@ -52,7 +57,8 @@ const stateLeaders: Record<StateName, {
     {
       rank: 5,
       name: "James Brown",
-      site: "Athens Hub",
+      area: "Five Points, Athens",
+      role: "Independent Hauler",
       diverted: "6,300 lbs",
       co2: "1,430 kg",
       streak: 7,
@@ -63,7 +69,8 @@ const stateLeaders: Record<StateName, {
     {
       rank: 1,
       name: "Emily Davis",
-      site: "Music Row Towers",
+      area: "Music Row, Nashville",
+      role: "Neighborhood Volunteer",
       diverted: "11,800 lbs",
       co2: "2,680 kg",
       streak: 24,
@@ -72,7 +79,8 @@ const stateLeaders: Record<StateName, {
     {
       rank: 2,
       name: "Robert Wilson",
-      site: "Riverfront Lofts",
+      area: "South Main, Memphis",
+      role: "Independent Hauler",
       diverted: "9,450 lbs",
       co2: "2,150 kg",
       streak: 19,
@@ -81,7 +89,8 @@ const stateLeaders: Record<StateName, {
     {
       rank: 3,
       name: "Ana Martinez",
-      site: "Tech Campus",
+      area: "Fort Sanders, Knoxville",
+      role: "Neighborhood Volunteer",
       diverted: "7,900 lbs",
       co2: "1,800 kg",
       streak: 12,
@@ -90,7 +99,8 @@ const stateLeaders: Record<StateName, {
     {
       rank: 4,
       name: "Lisa Anderson",
-      site: "Riverwalk Plaza",
+      area: "North Shore, Chattanooga",
+      role: "Government Liaison",
       diverted: "6,200 lbs",
       co2: "1,410 kg",
       streak: 9,
@@ -99,7 +109,8 @@ const stateLeaders: Record<StateName, {
     {
       rank: 5,
       name: "Chris Taylor",
-      site: "Gateway Center",
+      area: "Downtown Clarksville",
+      role: "Independent Hauler",
       diverted: "5,100 lbs",
       co2: "1,160 kg",
       streak: 5,
@@ -146,7 +157,7 @@ export function LeaderboardPanel() {
                 {leader.streak}d streak
               </span>
             </div>
-            <p className="text-xs text-gray-500 mt-0.5">{leader.site}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{leader.area} · <span className="text-violet-500">{leader.role}</span></p>
             <div className="flex items-center gap-3 mt-1">
               <span className="text-xs text-green-600 font-medium">
                 {leader.diverted}

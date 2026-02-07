@@ -1,50 +1,36 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { COLORS } from "../../src/constants/theme";
-import { useToast } from "../../src/components/Toast";
-import { useAuth } from "../../src/context/AuthContext";
+import { useAuth, getLevelInfo, POINTS } from "../../src/context/AuthContext";
 import ProfileHeader from "../../src/components/ProfileHeader";
 
-const { width } = Dimensions.get("window");
-
-const initialTasks = [
-  { id: 1, title: "Scan morning debris pile", done: true, icon: "checkmark-circle" as const },
-  { id: 2, title: "Route recyclables to SA Recycling", done: false, icon: "navigate-circle-outline" as const },
-  { id: 3, title: "Log afternoon concrete haul", done: false, icon: "camera-outline" as const },
-  { id: 4, title: "Check diversion leaderboard", done: false, icon: "trophy-outline" as const },
+/* ── Leaderboard data ── */
+const LEADERBOARD = [
+  { rank: 1, name: "Marcus G.", xp: 4820, level: 9, avatar: "M" },
+  { rank: 2, name: "Priya S.", xp: 4210, level: 8, avatar: "P" },
+  { rank: 3, name: "DeShawn W.", xp: 3880, level: 8, avatar: "D" },
+  { rank: 4, name: "Sarah C.", xp: 3320, level: 7, avatar: "S" },
+  { rank: 5, name: "James T.", xp: 2950, level: 7, avatar: "J" },
 ];
+
+const RANK_COLORS = ["#facc15", "#94a3b8", "#cd7f32"];
 
 export default function HomeScreen() {
   const greeting = getGreeting();
-  const { showToast } = useToast();
   const { user } = useAuth();
-  const [tasks, setTasks] = useState(initialTasks);
   const firstName = user?.name?.split(" ")[0] ?? "there";
-
-  const toggleTask = (id: number) => {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id === id) {
-          const newDone = !t.done;
-          if (newDone) {
-            showToast(`Task completed: ${t.title}`, "checkmark-circle");
-          }
-          return { ...t, done: newDone };
-        }
-        return t;
-      })
-    );
-  };
+  const levelInfo = user ? getLevelInfo(user.xp) : { level: 1, xp: 0, progress: 0, currentThreshold: 0, nextThreshold: 100 };
+  const tasks = user?.dailyTasks ?? [];
+  const tasksCompleted = tasks.filter((t) => t.completed).length;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -56,42 +42,36 @@ export default function HomeScreen() {
           variant="greeting"
         />
 
-        <View style={styles.header}>
-          {/* Day tracker */}
-          <View style={styles.dayTracker}>
-            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
-              (day, i) => (
-                <View
-                  key={day}
-                  style={[
-                    styles.dayPill,
-                    i < 4 && styles.dayPillActive,
-                    i === 3 && styles.dayPillCurrent,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.dayPillText,
-                      i < 4 && styles.dayPillTextActive,
-                    ]}
-                  >
-                    {day}
-                  </Text>
-                  {i < 4 && (
-                    <Ionicons
-                      name="checkmark"
-                      size={10}
-                      color="#fff"
-                      style={{ marginTop: 2 }}
-                    />
-                  )}
-                </View>
-              )
-            )}
+        {/* ── Level Card ── */}
+        <View style={styles.levelCard}>
+          <View style={styles.levelTop}>
+            <View style={styles.levelBadge}>
+              <Text style={styles.levelBadgeText}>{levelInfo.level}</Text>
+            </View>
+            <View style={styles.levelMeta}>
+              <Text style={styles.levelTitle}>Level {levelInfo.level}</Text>
+              <Text style={styles.xpText}>
+                {user?.xp?.toLocaleString() ?? 0} XP
+              </Text>
+            </View>
+            <View style={styles.xpToNext}>
+              <Text style={styles.xpToNextLabel}>Next level</Text>
+              <Text style={styles.xpToNextValue}>{(levelInfo.nextThreshold - (user?.xp ?? 0)).toLocaleString()} XP</Text>
+            </View>
+          </View>
+          {/* Progress bar */}
+          <View style={styles.levelBarBg}>
+            <View
+              style={[styles.levelBarFill, { width: `${Math.max(levelInfo.progress * 100, 2)}%` }]}
+            />
+          </View>
+          <View style={styles.levelBarLabels}>
+            <Text style={styles.levelBarLabel}>{levelInfo.currentThreshold.toLocaleString()}</Text>
+            <Text style={styles.levelBarLabel}>{levelInfo.nextThreshold.toLocaleString()}</Text>
           </View>
         </View>
 
-        {/* Impact summary card */}
+        {/* ── Impact Summary ── */}
         <View style={styles.impactCard}>
           <View style={styles.impactHeader}>
             <Ionicons name="leaf" size={20} color="#fff" />
@@ -118,7 +98,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* New Scan Button */}
+        {/* ── New Scan Button ── */}
         <TouchableOpacity
           style={styles.scanButton}
           onPress={() => router.push("/scan")}
@@ -131,74 +111,69 @@ export default function HomeScreen() {
             <View style={styles.scanButtonText}>
               <Text style={styles.scanButtonTitle}>New Scan</Text>
               <Text style={styles.scanButtonDesc}>
-                Classify waste as organic, recyclable, or non-recyclable
+                Classify waste & earn {POINTS.SCAN} XP
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.7)" />
           </View>
         </TouchableOpacity>
 
-        {/* Today's Tasks */}
-        <Text style={styles.sectionTitle}>Today's Tasks</Text>
+        {/* ── Daily Tasks ── */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Today's Tasks</Text>
+          <View style={styles.taskCounter}>
+            <Text style={styles.taskCounterText}>{tasksCompleted}/{tasks.length}</Text>
+          </View>
+        </View>
         <View style={styles.taskList}>
           {tasks.map((task) => (
-            <TouchableOpacity
+            <View
               key={task.id}
-              style={[styles.taskItem, task.done && styles.taskDone]}
-              onPress={() => toggleTask(task.id)}
-              activeOpacity={0.7}
+              style={[styles.taskItem, task.completed && styles.taskDone]}
             >
-              <View
-                style={[
-                  styles.taskCheck,
-                  task.done && styles.taskCheckDone,
-                ]}
-              >
-                {task.done && (
-                  <Ionicons name="checkmark" size={14} color="#fff" />
-                )}
+              <View style={[styles.taskCheck, task.completed && styles.taskCheckDone]}>
+                {task.completed && <Ionicons name="checkmark" size={14} color="#fff" />}
               </View>
-              <Text
-                style={[
-                  styles.taskText,
-                  task.done && styles.taskTextDone,
-                ]}
-              >
-                {task.title}
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.taskText, task.completed && styles.taskTextDone]}>
+                  {task.title}
+                </Text>
+                <Text style={styles.taskPoints}>+{task.points} XP</Text>
+              </View>
               <Ionicons
-                name={task.icon}
+                name={task.icon as any}
                 size={20}
-                color={task.done ? COLORS.textLight : COLORS.primary}
+                color={task.completed ? COLORS.textLight : COLORS.primary}
               />
-            </TouchableOpacity>
+            </View>
           ))}
         </View>
 
-        {/* Job site info */}
-        <Text style={styles.sectionTitle}>Current Job Site</Text>
-        <View style={styles.siteCard}>
-          <View style={styles.siteInfo}>
-            <Text style={styles.siteName}>Midtown Tower Phase 2</Text>
-            <View style={styles.siteLocation}>
-              <Ionicons name="location" size={14} color={COLORS.primary} />
-              <Text style={styles.siteCity}>Atlanta, GA</Text>
-            </View>
-          </View>
-          <View style={styles.siteStats}>
-            <View style={styles.siteStat}>
-              <Text style={styles.siteStatValue}>12,450</Text>
-              <Text style={styles.siteStatLabel}>lbs total</Text>
-            </View>
-            <View style={styles.siteStat}>
-              <Text style={styles.siteStatValue}>#2</Text>
-              <Text style={styles.siteStatLabel}>site rank</Text>
-            </View>
-            <View style={styles.siteStat}>
-              <Text style={styles.siteStatValue}>85</Text>
-              <Text style={styles.siteStatLabel}>green score</Text>
-            </View>
-          </View>
+        {/* ── Leaderboard ── */}
+        <Text style={[styles.sectionTitle, { paddingHorizontal: 20, marginTop: 24 }]}>
+          Community Leaderboard
+        </Text>
+        <View style={styles.leaderboard}>
+          {LEADERBOARD.map((entry, i) => {
+            const isUser = entry.name.startsWith(firstName);
+            return (
+              <View key={entry.rank} style={[styles.leaderRow, isUser && styles.leaderRowSelf]}>
+                <Text style={[styles.leaderRank, i < 3 && { color: RANK_COLORS[i] }]}>
+                  #{entry.rank}
+                </Text>
+                <View style={[styles.leaderAvatar, i === 0 && { backgroundColor: "#fef3c7" }]}>
+                  <Text style={[styles.leaderAvatarText, i === 0 && { color: "#b45309" }]}>
+                    {entry.avatar}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.leaderName}>{entry.name}</Text>
+                  <Text style={styles.leaderXp}>{entry.xp.toLocaleString()} XP · Lvl {entry.level}</Text>
+                </View>
+                {i === 0 && <Ionicons name="trophy" size={18} color="#facc15" />}
+              </View>
+            );
+          })}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -213,48 +188,100 @@ function getGreeting() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-  },
-  dayTracker: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 20,
-    gap: 6,
-  },
-  dayPill: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 8,
-    borderRadius: 12,
+  container: { flex: 1, backgroundColor: COLORS.background },
+
+  /* ── Level Card ── */
+  levelCard: {
+    marginHorizontal: 20,
+    marginTop: 8,
     backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 18,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  dayPillActive: {
+  levelTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  levelBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     backgroundColor: COLORS.primary,
-  },
-  dayPillCurrent: {
-    backgroundColor: COLORS.primaryDark,
+    justifyContent: "center",
+    alignItems: "center",
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 6,
   },
-  dayPillText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: COLORS.textLight,
-  },
-  dayPillTextActive: {
+  levelBadgeText: {
+    fontSize: 22,
+    fontWeight: "900",
     color: "#fff",
   },
+  levelMeta: {
+    marginLeft: 14,
+    flex: 1,
+  },
+  levelTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: COLORS.text,
+  },
+  xpText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  xpToNext: {
+    alignItems: "flex-end",
+  },
+  xpToNextLabel: {
+    fontSize: 10,
+    color: COLORS.textLight,
+    textTransform: "uppercase",
+    fontWeight: "600",
+    letterSpacing: 0.5,
+  },
+  xpToNextValue: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.primary,
+    marginTop: 2,
+  },
+  levelBarBg: {
+    height: 10,
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 5,
+    overflow: "hidden",
+  },
+  levelBarFill: {
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primary,
+  },
+  levelBarLabels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 4,
+  },
+  levelBarLabel: {
+    fontSize: 10,
+    color: COLORS.textLight,
+    fontWeight: "500",
+  },
+
+  /* ── Impact Card ── */
   impactCard: {
     marginHorizontal: 20,
+    marginTop: 16,
     borderRadius: 20,
     overflow: "hidden",
     backgroundColor: COLORS.primary,
@@ -271,53 +298,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 18,
   },
-  impactTitle: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
+  impactTitle: { color: "#fff", fontSize: 15, fontWeight: "600" },
   impactStats: {
     flexDirection: "row",
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
-  impactStat: {
-    flex: 1,
-    alignItems: "center",
-  },
-  impactValue: {
-    color: "#fff",
-    fontSize: 26,
-    fontWeight: "800",
-  },
-  impactLabel: {
-    color: "rgba(255,255,255,0.75)",
-    fontSize: 11,
-    marginTop: 2,
-  },
-  impactDivider: {
-    width: 1,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    marginVertical: 4,
-  },
+  impactStat: { flex: 1, alignItems: "center" },
+  impactValue: { color: "#fff", fontSize: 26, fontWeight: "800" },
+  impactLabel: { color: "rgba(255,255,255,0.75)", fontSize: 11, marginTop: 2 },
+  impactDivider: { width: 1, backgroundColor: "rgba(255,255,255,0.2)", marginVertical: 4 },
   streakBanner: {
     backgroundColor: "rgba(0,0,0,0.1)",
     paddingVertical: 10,
     alignItems: "center",
   },
-  streakText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.text,
-    paddingHorizontal: 20,
-    marginTop: 24,
-    marginBottom: 12,
-  },
+  streakText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+
+  /* ── Scan Button ── */
   scanButton: {
     marginHorizontal: 20,
     marginTop: 20,
@@ -345,23 +343,39 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  scanButtonText: {
-    flex: 1,
-  },
-  scanButtonTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#fff",
-  },
-  scanButtonDesc: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.75)",
-    marginTop: 3,
-  },
-  taskList: {
+  scanButtonText: { flex: 1 },
+  scanButtonTitle: { fontSize: 18, fontWeight: "800", color: "#fff" },
+  scanButtonDesc: { fontSize: 12, color: "rgba(255,255,255,0.75)", marginTop: 3 },
+
+  /* ── Section header ── */
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
-    gap: 8,
+    marginTop: 24,
+    marginBottom: 12,
   },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  taskCounter: {
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  taskCounterText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: COLORS.primary,
+  },
+
+  /* ── Tasks (read-only) ── */
+  taskList: { paddingHorizontal: 20, gap: 8 },
   taskItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -375,9 +389,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-  taskDone: {
-    opacity: 0.6,
-  },
+  taskDone: { opacity: 0.55 },
   taskCheck: {
     width: 24,
     height: 24,
@@ -391,64 +403,61 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
   },
-  taskText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "500",
-    color: COLORS.text,
-  },
-  taskTextDone: {
-    textDecorationLine: "line-through",
-    color: COLORS.textLight,
-  },
-  siteCard: {
+  taskText: { fontSize: 14, fontWeight: "500", color: COLORS.text },
+  taskTextDone: { textDecorationLine: "line-through", color: COLORS.textLight },
+  taskPoints: { fontSize: 11, color: COLORS.primary, fontWeight: "600", marginTop: 2 },
+
+  /* ── Leaderboard ── */
+  leaderboard: {
     marginHorizontal: 20,
     backgroundColor: COLORS.white,
     borderRadius: 16,
-    padding: 16,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
   },
-  siteInfo: {
-    marginBottom: 14,
-  },
-  siteName: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  siteLocation: {
+  leaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    marginTop: 4,
-  },
-  siteCity: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-  },
-  siteStats: {
-    flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingTop: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  siteStat: {
-    flex: 1,
+  leaderRowSelf: {
+    backgroundColor: "#f0fdf4",
+  },
+  leaderRank: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: COLORS.textSecondary,
+    width: 28,
+  },
+  leaderAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: "center",
     alignItems: "center",
   },
-  siteStatValue: {
-    fontSize: 20,
-    fontWeight: "800",
+  leaderAvatarText: {
+    fontSize: 14,
+    fontWeight: "700",
     color: COLORS.primary,
   },
-  siteStatLabel: {
+  leaderName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.text,
+  },
+  leaderXp: {
     fontSize: 11,
     color: COLORS.textSecondary,
-    marginTop: 2,
+    marginTop: 1,
   },
 });

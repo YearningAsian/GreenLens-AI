@@ -6,7 +6,7 @@ import { useStateSelection, StateName } from "@/context/StateContext";
 const stateScans: Record<StateName, {
   id: number;
   volunteer: string;
-  site: string;
+  area: string;
   category: string;
   weight: string;
   time: string;
@@ -16,7 +16,7 @@ const stateScans: Record<StateName, {
     {
       id: 1,
       volunteer: "Marcus J.",
-      site: "Midtown Tower",
+      area: "Midtown",
       category: "Recyclable 85%, Non-Recyclable 15%",
       weight: "120 lbs",
       time: "2 min ago",
@@ -25,7 +25,7 @@ const stateScans: Record<StateName, {
     {
       id: 2,
       volunteer: "Sarah C.",
-      site: "Savannah River Plaza",
+      area: "Downtown",
       category: "Organic 60%, Recyclable 40%",
       weight: "450 lbs",
       time: "8 min ago",
@@ -34,7 +34,7 @@ const stateScans: Record<StateName, {
     {
       id: 3,
       volunteer: "David W.",
-      site: "Augusta Medical",
+      area: "Harrisburg",
       category: "Recyclable 70%, Non-Recyclable 30%",
       weight: "85 lbs",
       time: "15 min ago",
@@ -43,7 +43,7 @@ const stateScans: Record<StateName, {
     {
       id: 4,
       volunteer: "Maria G.",
-      site: "Macon Heritage",
+      area: "Ingleside",
       category: "Organic 90%, Non-Recyclable 10%",
       weight: "200 lbs",
       time: "22 min ago",
@@ -52,7 +52,7 @@ const stateScans: Record<StateName, {
     {
       id: 5,
       volunteer: "James B.",
-      site: "Athens Hub",
+      area: "Five Points",
       category: "Recyclable 55%, Organic 30%, Non-Recyclable 15%",
       weight: "600 lbs",
       time: "35 min ago",
@@ -61,7 +61,7 @@ const stateScans: Record<StateName, {
     {
       id: 6,
       volunteer: "Chris T.",
-      site: "Columbus Convention Ctr",
+      area: "Uptown",
       category: "Organic 70%, Recyclable 30%",
       weight: "210 lbs",
       time: "42 min ago",
@@ -72,7 +72,7 @@ const stateScans: Record<StateName, {
     {
       id: 1,
       volunteer: "Emily D.",
-      site: "Music Row Towers",
+      area: "Music Row",
       category: "Recyclable 75%, Organic 25%",
       weight: "180 lbs",
       time: "3 min ago",
@@ -81,7 +81,7 @@ const stateScans: Record<StateName, {
     {
       id: 2,
       volunteer: "Robert W.",
-      site: "Riverfront Lofts",
+      area: "South Main",
       category: "Organic 65%, Recyclable 35%",
       weight: "320 lbs",
       time: "11 min ago",
@@ -90,7 +90,7 @@ const stateScans: Record<StateName, {
     {
       id: 3,
       volunteer: "Ana M.",
-      site: "Tech Campus",
+      area: "Fort Sanders",
       category: "Recyclable 80%, Non-Recyclable 20%",
       weight: "95 lbs",
       time: "18 min ago",
@@ -99,7 +99,7 @@ const stateScans: Record<StateName, {
     {
       id: 4,
       volunteer: "Lisa A.",
-      site: "Riverwalk Plaza",
+      area: "North Shore",
       category: "Organic 55%, Recyclable 30%, Non-Recyclable 15%",
       weight: "410 lbs",
       time: "25 min ago",
@@ -108,7 +108,7 @@ const stateScans: Record<StateName, {
     {
       id: 5,
       volunteer: "Chris T.",
-      site: "Gateway Center",
+      area: "Downtown",
       category: "Recyclable 60%, Organic 40%",
       weight: "150 lbs",
       time: "38 min ago",
@@ -149,7 +149,7 @@ export function RecentScans() {
               <span className="text-gray-300">|</span>
               <span className="text-xs text-gray-400 flex items-center gap-0.5">
                 <MapPin className="w-3 h-3" />
-                {scan.site}, {scan.city}
+                {scan.area}, {scan.city}
               </span>
             </div>
           </div>

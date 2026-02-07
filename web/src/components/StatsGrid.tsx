@@ -4,7 +4,7 @@ import {
   ScanLine,
   Weight,
   Cloud,
-  Building2,
+  MapPin,
   TrendingUp,
   Recycle,
 } from "lucide-react";
@@ -38,11 +38,11 @@ const stats = [
     bgColor: "bg-violet-50",
   },
   {
-    label: "Active Sites",
+    label: "Active Neighborhoods",
     value: "34",
     change: "+3",
     positive: true,
-    icon: Building2,
+    icon: MapPin,
     color: "from-amber-500 to-orange-600",
     bgColor: "bg-amber-50",
   },

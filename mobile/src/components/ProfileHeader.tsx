@@ -12,7 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { COLORS } from "../constants/theme";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, ROLES, RoleName } from "../context/AuthContext";
 
 interface ProfileHeaderProps {
   title: string;
@@ -21,8 +21,9 @@ interface ProfileHeaderProps {
 }
 
 export default function ProfileHeader({ title, subtitle, variant = "default" }: ProfileHeaderProps) {
-  const { user, logout, updateProfileImage } = useAuth();
+  const { user, logout, updateProfileImage, updateRole } = useAuth();
   const [showMenu, setShowMenu] = useState(false);
+  const [showRolePicker, setShowRolePicker] = useState(false);
   const isGreeting = variant === "greeting";
 
   const pickImage = async () => {
@@ -118,10 +119,17 @@ export default function ProfileHeader({ title, subtitle, variant = "default" }: 
             <View style={styles.menuDivider} />
 
             <View style={styles.menuDetails}>
-              <View style={styles.menuDetailRow}>
-                <Ionicons name="business-outline" size={16} color={COLORS.textSecondary} />
-                <Text style={styles.menuDetailText}>{user?.jobSite ?? "—"}</Text>
-              </View>
+              <TouchableOpacity
+                style={styles.menuDetailRow}
+                activeOpacity={0.6}
+                onPress={() => setShowRolePicker(true)}
+              >
+                <Ionicons name="people-outline" size={16} color={COLORS.violet} />
+                <Text style={[styles.menuDetailText, { color: COLORS.violet, fontWeight: "600" }]}>
+                  {user?.role ?? "—"}
+                </Text>
+                <Ionicons name="chevron-forward" size={14} color={COLORS.violet} style={{ marginLeft: "auto" }} />
+              </TouchableOpacity>
               <View style={styles.menuDetailRow}>
                 <Ionicons name="location-outline" size={16} color={COLORS.textSecondary} />
                 <Text style={styles.menuDetailText}>{user?.city ?? "—"}</Text>
@@ -145,6 +153,57 @@ export default function ProfileHeader({ title, subtitle, variant = "default" }: 
               <Ionicons name="log-out-outline" size={18} color={COLORS.danger} />
               <Text style={styles.logoutText}>Sign Out</Text>
             </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Role picker modal */}
+      <Modal
+        visible={showRolePicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowRolePicker(false)}
+      >
+        <Pressable
+          style={[styles.overlay, { justifyContent: "flex-end", alignItems: "stretch", paddingTop: 0, paddingRight: 0 }]}
+          onPress={() => setShowRolePicker(false)}
+        >
+          <View style={styles.rolePicker}>
+            <Text style={styles.rolePickerTitle}>Choose Your Role</Text>
+            <Text style={styles.rolePickerSubtitle}>
+              How do you contribute to the community?
+            </Text>
+            {ROLES.map((role) => {
+              const isSelected = user?.role === role.name;
+              return (
+                <TouchableOpacity
+                  key={role.name}
+                  style={[styles.roleOption, isSelected && styles.roleOptionActive]}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    updateRole(role.name);
+                    setShowRolePicker(false);
+                  }}
+                >
+                  <View style={[styles.roleIconWrap, isSelected && styles.roleIconWrapActive]}>
+                    <Ionicons
+                      name={role.icon as any}
+                      size={22}
+                      color={isSelected ? "#fff" : COLORS.violet}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.roleOptionName, isSelected && styles.roleOptionNameActive]}>
+                      {role.name}
+                    </Text>
+                    <Text style={styles.roleOptionDesc}>{role.description}</Text>
+                  </View>
+                  {isSelected && (
+                    <Ionicons name="checkmark-circle" size={22} color={COLORS.violet} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </Pressable>
       </Modal>
@@ -307,5 +366,67 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: COLORS.danger,
+  },
+  rolePicker: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    width: "100%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 16,
+  },
+  rolePickerTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  rolePickerSubtitle: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 20,
+  },
+  roleOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: COLORS.background,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  roleOptionActive: {
+    borderColor: COLORS.violet,
+    backgroundColor: "#f5f3ff",
+  },
+  roleIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#ede9fe",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  roleIconWrapActive: {
+    backgroundColor: COLORS.violet,
+  },
+  roleOptionName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.text,
+  },
+  roleOptionNameActive: {
+    color: COLORS.violet,
+  },
+  roleOptionDesc: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
 });

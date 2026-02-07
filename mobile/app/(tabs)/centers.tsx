@@ -61,14 +61,18 @@ export default function CentersScreen() {
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
 
-  // Request location once on mount
+  // Request location once on mount (permission already asked in _layout)
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") return;
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setUserLat(loc.coords.latitude);
-      setUserLng(loc.coords.longitude);
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") return;
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        setUserLat(loc.coords.latitude);
+        setUserLng(loc.coords.longitude);
+      } catch {
+        // Location unavailable — centers still load without distance sorting
+      }
     })();
   }, []);
 
@@ -105,12 +109,13 @@ export default function CentersScreen() {
         setRefreshing(false);
       }
     },
-    []
+    [userLat, userLng]
   );
 
+  // Always fetch centers on mount + re-fetch when filter or location changes
   useEffect(() => {
     fetchCenters(activeFilter);
-  }, [activeFilter, userLat]);
+  }, [activeFilter, fetchCenters]);
 
   const onFilterChange = (key: CategoryFilter) => {
     setActiveFilter(key);

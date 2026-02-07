@@ -12,15 +12,15 @@ import {
 } from "lucide-react";
 
 const scanHistory = [
-  { id: 1, volunteer: "Marcus Johnson", site: "Midtown Tower Phase 2", city: "Atlanta", categories: "Recyclable 85%, Non-Recyclable 15%", weight: 120, co2: 110.2, confidence: 93, time: "2 min ago" },
-  { id: 2, volunteer: "Sarah Chen", site: "Savannah River Plaza", city: "Savannah", categories: "Organic 60%, Recyclable 40%", weight: 450, co2: 275.4, confidence: 89, time: "8 min ago" },
-  { id: 3, volunteer: "David Williams", site: "Augusta Medical Center", city: "Augusta", categories: "Recyclable 70%, Non-Recyclable 30%", weight: 85, co2: 62.0, confidence: 91, time: "15 min ago" },
-  { id: 4, volunteer: "Maria Garcia", site: "Macon Heritage Park", city: "Macon", categories: "Organic 90%, Non-Recyclable 10%", weight: 200, co2: 62.2, confidence: 87, time: "22 min ago" },
-  { id: 5, volunteer: "James Brown", site: "Athens Innovation Hub", city: "Athens", categories: "Recyclable 55%, Organic 30%, Non-Recyclable 15%", weight: 600, co2: 402.0, confidence: 96, time: "35 min ago" },
-  { id: 6, volunteer: "Emily Davis", site: "Buckhead Residences", city: "Atlanta", categories: "Organic 65%, Recyclable 35%", weight: 180, co2: 104.0, confidence: 85, time: "1 hr ago" },
-  { id: 7, volunteer: "Robert Wilson", site: "Port of Savannah", city: "Savannah", categories: "Recyclable 80%, Non-Recyclable 20%", weight: 340, co2: 281.5, confidence: 94, time: "1.5 hrs ago" },
-  { id: 8, volunteer: "Ana Martinez", site: "Columbus Convention Center", city: "Columbus", categories: "Recyclable 45%, Organic 40%, Non-Recyclable 15%", weight: 210, co2: 124.1, confidence: 90, time: "2 hrs ago" },
-  { id: 9, volunteer: "Chris Taylor", site: "Columbus Riverwalk Complex", city: "Columbus", categories: "Organic 70%, Recyclable 30%", weight: 95, co2: 51.7, confidence: 88, time: "2.5 hrs ago" },
+  { id: 1, volunteer: "Marcus Johnson", area: "Midtown", city: "Atlanta", role: "Neighborhood Volunteer", categories: "Recyclable 85%, Non-Recyclable 15%", weight: 120, co2: 110.2, confidence: 93, time: "2 min ago" },
+  { id: 2, volunteer: "Sarah Chen", area: "Downtown", city: "Savannah", role: "Independent Hauler", categories: "Organic 60%, Recyclable 40%", weight: 450, co2: 275.4, confidence: 89, time: "8 min ago" },
+  { id: 3, volunteer: "David Williams", area: "Harrisburg", city: "Augusta", role: "Neighborhood Volunteer", categories: "Recyclable 70%, Non-Recyclable 30%", weight: 85, co2: 62.0, confidence: 91, time: "15 min ago" },
+  { id: 4, volunteer: "Maria Garcia", area: "Ingleside", city: "Macon", role: "Government Liaison", categories: "Organic 90%, Non-Recyclable 10%", weight: 200, co2: 62.2, confidence: 87, time: "22 min ago" },
+  { id: 5, volunteer: "James Brown", area: "Five Points", city: "Athens", role: "Independent Hauler", categories: "Recyclable 55%, Organic 30%, Non-Recyclable 15%", weight: 600, co2: 402.0, confidence: 96, time: "35 min ago" },
+  { id: 6, volunteer: "Emily Davis", area: "Buckhead", city: "Atlanta", role: "Neighborhood Volunteer", categories: "Organic 65%, Recyclable 35%", weight: 180, co2: 104.0, confidence: 85, time: "1 hr ago" },
+  { id: 7, volunteer: "Robert Wilson", area: "Isle of Hope", city: "Savannah", role: "Independent Hauler", categories: "Recyclable 80%, Non-Recyclable 20%", weight: 340, co2: 281.5, confidence: 94, time: "1.5 hrs ago" },
+  { id: 8, volunteer: "Ana Martinez", area: "Uptown", city: "Columbus", role: "Government Liaison", categories: "Recyclable 45%, Organic 40%, Non-Recyclable 15%", weight: 210, co2: 124.1, confidence: 90, time: "2 hrs ago" },
+  { id: 9, volunteer: "Chris Taylor", area: "Riverwalk", city: "Columbus", role: "Neighborhood Volunteer", categories: "Organic 70%, Recyclable 30%", weight: 95, co2: 51.7, confidence: 88, time: "2.5 hrs ago" },
 ];
 
 export default function ScansPage() {
@@ -33,7 +33,7 @@ export default function ScansPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Scan Analytics</h1>
               <p className="text-sm text-gray-500 mt-0.5">
-                All waste classification scans across Georgia sites
+                All waste classification scans across your community
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -81,7 +81,7 @@ export default function ScansPage() {
               <thead>
                 <tr className="bg-green-50/50 border-b border-green-100">
                   <th className="text-left py-3 px-4 text-gray-500 font-medium">Volunteer</th>
-                  <th className="text-left py-3 px-4 text-gray-500 font-medium">Site</th>
+                  <th className="text-left py-3 px-4 text-gray-500 font-medium">Area</th>
                   <th className="text-left py-3 px-4 text-gray-500 font-medium">Categories</th>
                   <th className="text-right py-3 px-4 text-gray-500 font-medium">Weight</th>
                   <th className="text-right py-3 px-4 text-gray-500 font-medium">CO₂ Saved</th>
@@ -102,7 +102,7 @@ export default function ScansPage() {
                     </td>
                     <td className="py-3 px-4">
                       <div>
-                        <span className="text-gray-800">{scan.site}</span>
+                        <span className="text-gray-800">{scan.area}</span>
                         <div className="flex items-center gap-1 mt-0.5">
                           <MapPin className="w-3 h-3 text-gray-400" />
                           <span className="text-xs text-gray-400">{scan.city}</span>

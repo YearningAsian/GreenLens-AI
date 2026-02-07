@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../src/constants/theme";
 import ProfileHeader from "../../src/components/ProfileHeader";
+import { useAuth } from "../../src/context/AuthContext";
 
 const { width } = Dimensions.get("window");
 
@@ -35,6 +36,12 @@ const materialBreakdown = [
 export default function ImpactScreen() {
   const [selectedBadge, setSelectedBadge] = useState<typeof badges[0] | null>(null);
   const spinAnim = useRef(new Animated.Value(0)).current;
+  const { completeTask } = useAuth();
+
+  // Auto-complete "Check impact" task on mount
+  useEffect(() => {
+    completeTask("impact");
+  }, []);
 
   useEffect(() => {
     if (selectedBadge) {
@@ -195,21 +202,6 @@ export default function ImpactScreen() {
             </TouchableOpacity>
           </TouchableOpacity>
         </Modal>
-
-        {/* Leaderboard position */}
-        <View style={styles.leaderCard}>
-          <View style={styles.leaderHeader}>
-            <Ionicons name="trophy" size={24} color="#f59e0b" />
-            <Text style={styles.leaderTitle}>Site Leaderboard</Text>
-          </View>
-          <View style={styles.leaderPosition}>
-            <Text style={styles.leaderRank}>#1</Text>
-            <Text style={styles.leaderRankLabel}>at Midtown Tower</Text>
-          </View>
-          <Text style={styles.leaderSubtext}>
-            You're leading your job site! 2,200 lbs ahead of 2nd place.
-          </Text>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -327,46 +319,6 @@ const styles = StyleSheet.create({
   },
   badgeLabelLocked: {
     color: COLORS.textLight,
-  },
-  leaderCard: {
-    marginHorizontal: 20,
-    marginTop: 24,
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: "#f59e0b",
-  },
-  leaderHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  leaderTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  leaderPosition: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 6,
-    marginTop: 10,
-  },
-  leaderRank: {
-    fontSize: 36,
-    fontWeight: "900",
-    color: "#f59e0b",
-  },
-  leaderRankLabel: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-  },
-  leaderSubtext: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    marginTop: 6,
-    lineHeight: 18,
   },
   modalOverlay: {
     flex: 1,

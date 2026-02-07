@@ -39,7 +39,7 @@ export default function Dashboard() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search sites, categories..."
+                placeholder="Search scans, volunteers..."
                 className="pl-10 pr-4 py-2 rounded-xl bg-green-50 border border-green-100 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 w-64"
               />
             </div>
@@ -65,7 +65,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <span className="w-2 h-2 bg-green-500 rounded-full live-pulse" />
-              <span>Live syncing with field operations across {stateConfig.cities.length} {selectedState} cities</span>
+              <span>Live syncing with community volunteers across {stateConfig.cities.length} {selectedState} cities</span>
             </div>
             <button
               onClick={() => setShowMethodology(!showMethodology)}
@@ -91,7 +91,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-700 mb-1">Diversion Rate</p>
-                  <p>(Recyclable + Organic weight) / Total weight × 100%. Updated live as scans arrive from field workers.</p>
+                  <p>(Recyclable + Organic weight) / Total weight × 100%. Updated live as scans arrive from community volunteers.</p>
                 </div>
               </div>
             </div>

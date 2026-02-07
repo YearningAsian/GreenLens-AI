@@ -17,6 +17,7 @@ import { COLORS, CATEGORY_COLORS, CATEGORY_LABELS } from "../../src/constants/th
 import { scanWaste } from "../../src/services/api";
 import ProfileHeader from "../../src/components/ProfileHeader";
 import { useToast } from "../../src/components/Toast";
+import { useAuth } from "../../src/context/AuthContext";
 
 interface Category {
   name: string;
@@ -47,6 +48,7 @@ export default function ScanScreen() {
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const { showToast } = useToast();
+  const { completeTask } = useAuth();
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -92,10 +94,12 @@ export default function ScanScreen() {
     try {
       const scanResult = await scanWaste(image);
       setResult(scanResult);
-      showToast("Scan completed successfully!", "checkmark-circle");
+      completeTask("scan");
+      showToast("Scan completed — +25 XP!", "checkmark-circle");
     } catch (error) {
       // Demo fallback result with 3 categories
-      showToast("Scan completed successfully!", "checkmark-circle");
+      showToast("Scan completed — +25 XP!", "checkmark-circle");
+      completeTask("scan");
       setResult({
         categories: [
           { name: "recyclable", percentage: 55, weight_estimate_lbs: 65, co2_saved_kg: 66.3, notes: "Steel beams, aluminum siding, concrete chunks" },

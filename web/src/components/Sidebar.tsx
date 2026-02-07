@@ -7,7 +7,6 @@ import {
   ScanLine,
   MapPin,
   BarChart3,
-  Building2,
   Users,
   FileText,
   Leaf,
@@ -19,11 +18,10 @@ import { useStateSelection, STATE_CONFIGS, StateName } from "@/context/StateCont
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Scan Analytics", href: "/scans", icon: ScanLine },
-  { label: "Job Sites", href: "/sites", icon: Building2 },
   { label: "Heatmap", href: "/heatmaps", icon: MapPin },
   { label: "Impact Reports", href: "/reports", icon: FileText },
   { label: "Leaderboard", href: "/leaderboard", icon: BarChart3 },
-  { label: "Volunteers", href: "/workers", icon: Users },
+  { label: "Community", href: "/workers", icon: Users },
 ];
 
 export function Sidebar() {

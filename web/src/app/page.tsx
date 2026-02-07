@@ -73,15 +73,15 @@ export default function LandingPage() {
         <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight max-w-4xl mx-auto">
           Closing the Loop on{" "}
           <span className="bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">
-            Construction Waste
+            Community Waste
           </span>
         </h1>
         <p className="mt-6 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
-          GreenLens AI is a national non-profit empowering communities to classify construction waste as{" "}
+          GreenLens AI is a national non-profit empowering anyone — volunteers, haulers, and city officials — to classify waste as{" "}
           <strong className="text-green-700">recyclable</strong>,{" "}
           <strong className="text-amber-600">organic</strong>, or{" "}
           <strong className="text-red-500">non-recyclable</strong>{" "}
-          — with a single photo. Currently piloting across 11 cities in Georgia & Tennessee.
+          — with a single photo. Pick your role and start making an impact today.
         </p>
         <div className="flex items-center justify-center gap-4 mt-10">
           <Link
@@ -141,7 +141,7 @@ export default function LandingPage() {
             {
               icon: Smartphone,
               title: "1. Snap a Photo",
-              desc: "Workers photograph construction debris on-site using the GreenLens mobile app.",
+              desc: "Anyone can photograph waste in their neighborhood, route, or district using the free GreenLens app.",
               color: "bg-green-50 text-green-600",
             },
             {
@@ -277,7 +277,7 @@ export default function LandingPage() {
             Join the Movement
           </h2>
           <p className="text-green-100 text-lg mb-8 max-w-xl mx-auto">
-            Every scan counts. Join our national initiative — currently piloting across Georgia & Tennessee — and help build a cleaner future.
+            Pick your role — Neighborhood Volunteer, Independent Hauler, or Government Liaison — and start scanning today.
           </p>
           <Link
             href="/dashboard"

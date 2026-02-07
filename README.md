@@ -6,13 +6,13 @@
 
 ## Mission
 
-The U.S. construction industry sends **600 million tons** of debris to landfills every year — more than every household in the country combined. Most of it is recyclable or compostable, but without fast, on-site identification, it all gets dumped together.
+The U.S. sends **600 million tons** of waste to landfills every year. Most of it is recyclable or compostable, but without fast, on-the-spot identification, it all gets dumped together.
 
-GreenLens AI puts a free, AI-powered material scanner in the hands of every frontline worker so that **no reusable material leaves a job site as trash**. We pair instant classification with real routing to local recycling centers, and give project leaders a live dashboard to track diversion rates and carbon offsets — turning regulatory burden into measurable impact.
+GreenLens AI puts a free, AI-powered material scanner in the hands of **anyone who cares** — neighborhood volunteers, independent haulers, and city officials — so that **no reusable material ends up as trash**. We pair instant classification with real routing to local recycling centers, and give community leaders a live dashboard to track diversion rates and carbon offsets — turning everyday action into measurable impact.
 
 ## Overview
 
-GreenLens AI is a dual-platform solution designed to eliminate construction waste starting with Georgia and Tennessee. Using Gemini 2.5 Flash, frontline workers get an instant mobile "material scanner" to categorize debris and route it to local recycling centers. Executives get a web dashboard to track city-wide carbon offsets and sustainability impact.
+GreenLens AI is a dual-platform solution designed to eliminate waste starting with Georgia and Tennessee. Using Gemini 2.5 Flash, community members — whether Neighborhood Volunteers, Independent Haulers, or Government Liaisons — get an instant mobile "material scanner" to categorize debris and route it to local recycling centers. Community leaders get a web dashboard to track city-wide carbon offsets and sustainability impact.
 
 ## Architecture
 
