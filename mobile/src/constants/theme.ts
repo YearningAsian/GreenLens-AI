@@ -6,10 +6,13 @@ import { Platform } from "react-native";
 const DEV_MACHINE_IP = "192.168.184.187";
 
 function getApiBaseUrl(): string {
-  // Production build
-  if (Constants.executionEnvironment === "storeClient") {
+  // Only use production if explicitly built for store (not in Expo Go or dev client)
+  const isProduction = Constants.executionEnvironment === "storeClient" && !__DEV__;
+  
+  if (isProduction) {
     return "https://api.greenlens.org";
   }
+  
   // Dev: extract host IP from Expo dev server so physical devices can reach backend
   const debuggerHost =
     (Constants.expoConfig as any)?.hostUri ??
@@ -33,7 +36,8 @@ const API_BASE_URL = getApiBaseUrl();
 console.log("[GreenLens] API_BASE_URL =", API_BASE_URL);
 
 // Convex HTTP API for database reads/writes
-export const CONVEX_URL = "https://laudable-ermine-139.convex.cloud";
+export const CONVEX_URL = Constants.expoConfig?.extra?.convexUrl || "https://laudable-ermine-139.convex.cloud";
+console.log("[GreenLens] CONVEX_URL =", CONVEX_URL);
 
 export const COLORS = {
   primary: "#22c55e",

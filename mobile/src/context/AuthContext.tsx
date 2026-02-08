@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
-import { fetchUserByEmail, loginUserDb, addXpDb, updateProfileDb, recordDailyTaskDb, type DbUser } from "../services/api";
+import { fetchUserByEmail, loginUserDb, addXpDb, updateProfileDb, recordDailyTaskDb, fetchAllUsers, fetchUserScans, getRecyclingCenters, fetchActivityFeed, type DbUser } from "../services/api";
+import * as Location from "expo-location";
 
 export type RoleName = "Neighborhood Volunteer" | "General Worker" | "Government Worker";
 
@@ -78,9 +79,21 @@ export interface User {
   leaderboardPrivacy?: boolean;
 }
 
+export interface PrefetchedData {
+  allUsers: DbUser[];
+  userScans: any[];
+  centers: any[];
+  activityFeed: any[];
+  userLocation?: { latitude: number; longitude: number };
+}
+
 interface AuthContextValue {
   user: User | null;
   isAuthenticated: boolean;
+  /** True while login + data prefetch is in progress */
+  isLoading: boolean;
+  /** Prefetched data available immediately after login */
+  prefetched: PrefetchedData | null;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
@@ -96,11 +109,15 @@ interface AuthContextValue {
   clearLevelUp: () => void;
   /** Refresh user data from DB */
   refreshUser: () => Promise<void>;
+  /** Re-fetch prefetched data (e.g. after a scan changes things) */
+  refreshPrefetch: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   isAuthenticated: false,
+  isLoading: false,
+  prefetched: null,
   login: async () => false,
   signup: async () => false,
   logout: () => {},
@@ -112,6 +129,7 @@ const AuthContext = createContext<AuthContextValue>({
   pendingLevelUp: false,
   clearLevelUp: () => {},
   refreshUser: async () => {},
+  refreshPrefetch: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -129,7 +147,9 @@ function dbToUser(db: DbUser): User {
     city: `${db.city}, ${db.state === "Georgia" ? "GA" : "TN"}`,
     state: db.state,
     joinedDate: db.joinedDate,
-    profileImage: db.profileImageUrl,
+    profileImage: db.profileImageUrl
+      ? db.profileImageUrl.replace("/svg?", "/png?")
+      : undefined,
     xp: db.xp,
     level: db.level,
     streakDays: db.streakDays,
@@ -145,6 +165,36 @@ function dbToUser(db: DbUser): User {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [pendingLevelUp, setPendingLevelUp] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [prefetched, setPrefetched] = useState<PrefetchedData | null>(null);
+
+  /** Prefetch all data screens need after login */
+  const prefetchAll = useCallback(async (userState: string, userEmail: string) => {
+    console.log("[AuthContext] Prefetching all data...");
+    try {
+      const [allUsers, userScans, centersData, activityFeed, locationResult] = await Promise.all([
+        fetchAllUsers(userState).catch(() => [] as DbUser[]),
+        fetchUserScans(userEmail).catch(() => []),
+        getRecyclingCenters().then(r => r.centers ?? []).catch(() => []),
+        fetchActivityFeed(userState, 20).catch(() => []),
+        (async () => {
+          try {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== "granted") return undefined;
+            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            return { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+          } catch { return undefined; }
+        })(),
+      ]);
+      const data: PrefetchedData = { allUsers, userScans, centers: centersData, activityFeed, userLocation: locationResult ?? undefined };
+      console.log(`[AuthContext] Prefetch done: ${allUsers.length} users, ${userScans.length} scans, ${centersData.length} centers, location: ${locationResult ? 'yes' : 'no'}`);
+      setPrefetched(data);
+      return data;
+    } catch (e) {
+      console.warn("[AuthContext] Prefetch partial failure:", e);
+      setPrefetched({ allUsers: [], userScans: [], centers: [], activityFeed: [] });
+    }
+  }, []);
 
   /** Reset daily tasks if the date changed */
   const ensureDailyReset = useCallback((u: User): User => {
@@ -179,6 +229,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const trimmed = email.toLowerCase().trim();
+    setIsLoading(true);
     try {
       // Try Convex DB login
       const result = await loginUserDb(trimmed, `pbkdf2_sha256$${password}`);
@@ -193,8 +244,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         freshUser.xp += POINTS.LOGIN;
         if (getLevelInfo(freshUser.xp).level > oldLevel) setPendingLevelUp(true);
         setUser(freshUser);
-        // Award XP in DB too
+        // Award XP in DB too (fire-and-forget)
         try { addXpDb(trimmed, POINTS.LOGIN, "daily_login"); } catch {}
+        // Prefetch all data before showing the app
+        await prefetchAll(freshUser.state, freshUser.email);
+        setIsLoading(false);
         return true;
       }
     } catch (e) {
@@ -213,14 +267,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         freshUser.xp += POINTS.LOGIN;
         if (getLevelInfo(freshUser.xp).level > oldLevel) setPendingLevelUp(true);
         setUser(freshUser);
+        // Prefetch all data before showing the app
+        await prefetchAll(freshUser.state, freshUser.email);
+        setIsLoading(false);
         return true;
       }
     } catch (e) {
       console.warn("[AuthContext] DB fetch failed:", e);
     }
 
+    setIsLoading(false);
     return false;
-  }, []);
+  }, [prefetchAll]);
 
   const signup = useCallback(async (_name: string, _email: string, _password: string) => {
     // For now, signup just logs in with the email if the user exists in DB
@@ -230,6 +288,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     // Full reset — next login will re-fetch fresh from DB
     setUser(null);
+    setPrefetched(null);
     setPendingLevelUp(false);
   }, []);
 
@@ -298,11 +357,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const clearLevelUp = useCallback(() => setPendingLevelUp(false), []);
 
+  /** Re-fetch prefetched data (e.g. after a scan) */
+  const refreshPrefetch = useCallback(async () => {
+    if (!user) return;
+    await prefetchAll(user.state, user.email);
+  }, [user?.state, user?.email, prefetchAll]);
+
   return (
     <AuthContext.Provider
       value={{
         user,
         isAuthenticated: !!user,
+        isLoading,
+        prefetched,
         login,
         signup,
         logout,
@@ -314,6 +381,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         pendingLevelUp,
         clearLevelUp,
         refreshUser,
+        refreshPrefetch,
       }}
     >
       {children}

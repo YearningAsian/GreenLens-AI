@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -7,13 +7,15 @@ import {
   ActivityIndicator,
   Platform,
   Dimensions,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { Marker, Polyline } from "react-native-maps";
 import * as Location from "expo-location";
 import { COLORS, CATEGORY_COLORS, CATEGORY_LABELS } from "../constants/theme";
 import { getRecyclingCenters, getDirections } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import ProfileHeader from "./ProfileHeader";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -74,42 +76,69 @@ const filters: { label: string; key: CategoryFilter }[] = [
 
 export default function MapScreen() {
   const mapRef = useRef<MapView>(null);
+  const { prefetched } = useAuth();
   const [centers, setCenters] = useState<Center[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userLat, setUserLat] = useState<number | null>(null);
-  const [userLng, setUserLng] = useState<number | null>(null);
+  const [userLat, setUserLat] = useState<number | null>(prefetched?.userLocation?.latitude ?? null);
+  const [userLng, setUserLng] = useState<number | null>(prefetched?.userLocation?.longitude ?? null);
   const [selectedCenter, setSelectedCenter] = useState<Center | null>(null);
   const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[]>([]);
   const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string } | null>(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
   const [activeFilter, setActiveFilter] = useState<CategoryFilter>("all");
+  const [mapReady, setMapReady] = useState(false);
 
   // Get user location
   useEffect(() => {
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") return;
+        if (status !== "granted") {
+          console.log("[MapScreen] Location permission denied");
+          return;
+        }
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         setUserLat(loc.coords.latitude);
         setUserLng(loc.coords.longitude);
-      } catch {}
+        
+        // Zoom to user location once map is ready and location is obtained
+        if (mapRef.current && mapReady) {
+          mapRef.current.animateToRegion({
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+            latitudeDelta: 0.3,
+            longitudeDelta: 0.3,
+          }, 1000);
+        }
+      } catch (err) {
+        console.log("[MapScreen] Error getting location:", err);
+      }
     })();
-  }, []);
+  }, [mapReady]);
 
   // Fetch centers
   const fetchCenters = useCallback(async (filter: CategoryFilter) => {
     setLoading(true);
     try {
+      // Use prefetched centers for initial "all" load
+      if (filter === "all" && prefetched?.centers?.length && centers.length === 0) {
+        console.log(`[MapScreen] Using ${prefetched.centers.length} prefetched centers`);
+        setCenters(prefetched.centers);
+        setLoading(false);
+        return;
+      }
       const category = filter === "all" ? undefined : filter;
       const data = await getRecyclingCenters(category);
-      setCenters(data.centers ?? []);
-    } catch {
+      const fetchedCenters = data.centers ?? [];
+      console.log(`[MapScreen] Fetched ${fetchedCenters.length} centers for filter: ${filter}`);
+      setCenters(fetchedCenters);
+    } catch (err) {
+      console.error("[MapScreen] Failed to fetch centers:", err);
       setCenters([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [prefetched?.centers]);
 
   useEffect(() => {
     fetchCenters(activeFilter);
@@ -117,18 +146,24 @@ export default function MapScreen() {
 
   // When a center is tapped, fetch route
   const handleSelectCenter = async (center: Center) => {
+    console.log(`[MapScreen] Center selected: ${center.name}`);
     setSelectedCenter(center);
     setRouteCoords([]);
     setRouteInfo(null);
 
-    if (!center.lat || !center.lng || userLat == null || userLng == null) return;
+    if (!center.lat || !center.lng || userLat == null || userLng == null) {
+      console.log("[MapScreen] Missing coordinates for route");
+      return;
+    }
 
     setLoadingRoute(true);
     try {
+      console.log(`[MapScreen] Fetching route from (${userLat}, ${userLng}) to (${center.lat}, ${center.lng})`);
       const dirs = await getDirections(userLat, userLng, center.lat, center.lng);
       const coords = decodePolyline(dirs.polyline);
       setRouteCoords(coords);
       setRouteInfo({ distance: dirs.distance, duration: dirs.duration });
+      console.log(`[MapScreen] Route loaded: ${dirs.distance}, ${dirs.duration}, ${coords.length} points`);
 
       // Fit map to route
       if (mapRef.current && coords.length > 0) {
@@ -162,10 +197,10 @@ export default function MapScreen() {
   };
 
   const initialRegion = {
-    latitude: userLat ?? 33.749,
+    latitude: userLat ?? 33.749,  // Atlanta, GA default
     longitude: userLng ?? -84.388,
-    latitudeDelta: 1.5,
-    longitudeDelta: 1.5,
+    latitudeDelta: 0.3,
+    longitudeDelta: 0.3,
   };
 
   return (
@@ -199,20 +234,27 @@ export default function MapScreen() {
           initialRegion={initialRegion}
           showsUserLocation
           showsMyLocationButton={false}
-          provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
+          onMapReady={() => {
+            console.log("[MapScreen] Map ready, centers count:", centers.length);
+            setMapReady(true);
+          }}
         >
-          {centers
-            .filter((c) => c.lat && c.lng)
-            .map((center) => (
-              <Marker
-                key={center.id}
-                coordinate={{ latitude: center.lat!, longitude: center.lng! }}
-                title={center.name}
-                description={center.address}
-                pinColor={getMarkerColor(center.accepts)}
-                onPress={() => handleSelectCenter(center)}
-              />
-            ))}
+          {useMemo(
+            () =>
+              centers
+                .filter((c) => c.lat && c.lng)
+                .map((center, index) => (
+                  <Marker
+                    key={`marker-${center.id}-${index}`}
+                    coordinate={{ latitude: center.lat!, longitude: center.lng! }}
+                    title={center.name}
+                    description={center.address}
+                    pinColor={getMarkerColor(center.accepts)}
+                    onPress={() => handleSelectCenter(center)}
+                  />
+                )),
+            [centers]
+          )}
 
           {routeCoords.length > 0 && (
             <Polyline
@@ -291,6 +333,31 @@ export default function MapScreen() {
               </View>
             </View>
           )}
+
+          {/* Navigate button — opens Google Maps for turn-by-turn */}
+          {selectedCenter.lat && selectedCenter.lng && (
+            <TouchableOpacity
+              style={styles.navigateBtn}
+              activeOpacity={0.7}
+              onPress={() => {
+                const dest = `${selectedCenter.lat},${selectedCenter.lng}`;
+                if (Platform.OS === "ios") {
+                  const gUrl = `comgooglemaps://?daddr=${dest}&directionsmode=driving`;
+                  Linking.canOpenURL(gUrl).then((ok) => {
+                    if (ok) Linking.openURL(gUrl);
+                    else Linking.openURL(`maps://maps.apple.com/?daddr=${dest}&dirflg=d`);
+                  });
+                } else {
+                  Linking.openURL(
+                    `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`
+                  );
+                }
+              }}
+            >
+              <Ionicons name="navigate" size={18} color="#fff" />
+              <Text style={styles.navigateBtnText}>Navigate</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </SafeAreaView>
@@ -319,8 +386,8 @@ const styles = StyleSheet.create({
   },
   filterText: { fontSize: 12, fontWeight: "600", color: COLORS.textSecondary },
   filterTextActive: { color: "#fff" },
-  mapContainer: { flex: 1, position: "relative" },
-  map: { flex: 1 },
+  mapContainer: { flex: 1, position: "relative", overflow: "hidden" },
+  map: { ...StyleSheet.absoluteFillObject },
   myLocationBtn: {
     position: "absolute",
     bottom: 20,
@@ -407,4 +474,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   routeChipText: { fontSize: 14, fontWeight: "700", color: COLORS.primary },
+  navigateBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    marginTop: 10,
+  },
+  navigateBtnText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#fff",
+  },
 });

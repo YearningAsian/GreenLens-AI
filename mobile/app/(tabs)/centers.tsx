@@ -16,6 +16,7 @@ import * as Location from "expo-location";
 import { COLORS, CATEGORY_COLORS } from "../../src/constants/theme";
 import ProfileHeader from "../../src/components/ProfileHeader";
 import { getRecyclingCenters } from "../../src/services/api";
+import { useAuth } from "../../src/context/AuthContext";
 
 type CategoryFilter = "all" | "recyclable" | "organic" | "non-recyclable";
 
@@ -53,6 +54,7 @@ function haversineDistance(
 }
 
 export default function CentersScreen() {
+  const { prefetched } = useAuth();
   const [activeFilter, setActiveFilter] = useState<CategoryFilter>("all");
   const [centers, setCenters] = useState<Center[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +62,7 @@ export default function CentersScreen() {
   const [error, setError] = useState(false);
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
+  const [usedPrefetch, setUsedPrefetch] = useState(false);
 
   // Request location once on mount (permission already asked in _layout)
   useEffect(() => {
@@ -83,9 +86,16 @@ export default function CentersScreen() {
       setError(false);
 
       try {
-        const category = filter === "all" ? undefined : filter;
-        const data = await getRecyclingCenters(category);
-        let list: Center[] = data.centers ?? [];
+        // Use prefetched centers on first "all" load if available
+        let list: Center[];
+        if (!usedPrefetch && filter === "all" && prefetched?.centers?.length) {
+          list = prefetched.centers;
+          setUsedPrefetch(true);
+        } else {
+          const category = filter === "all" ? undefined : filter;
+          const data = await getRecyclingCenters(category);
+          list = data.centers ?? [];
+        }
 
         // Sort by distance if we have user location
         if (userLat != null && userLng != null) {
@@ -257,7 +267,7 @@ export default function CentersScreen() {
     );
   };
 
-  const ListHeader = () => (
+  const renderHeader = useCallback(() => (
     <View style={styles.filterSection}>
       {filters.map((filter) => {
         const isActive = activeFilter === filter.key;
@@ -282,17 +292,20 @@ export default function CentersScreen() {
         );
       })}
     </View>
-  );
+  ), [activeFilter]);
 
-  const ListEmpty = () => (
-    <View style={styles.emptyState}>
-      {loading ? (
-        <>
+  const renderEmpty = useCallback(() => {
+    if (loading) {
+      return (
+        <View style={styles.emptyState}>
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.emptyText}>Loading centers...</Text>
-        </>
-      ) : error ? (
-        <>
+        </View>
+      );
+    }
+    if (error) {
+      return (
+        <View style={styles.emptyState}>
           <Ionicons name="cloud-offline-outline" size={40} color={COLORS.textLight} />
           <Text style={styles.emptyTitle}>Unable to load centers</Text>
           <Text style={styles.emptyText}>
@@ -304,18 +317,19 @@ export default function CentersScreen() {
           >
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
-        </>
-      ) : (
-        <>
-          <Ionicons name="search-outline" size={40} color={COLORS.textLight} />
-          <Text style={styles.emptyTitle}>No centers found</Text>
-          <Text style={styles.emptyText}>
-            No recycling centers match this filter. Try a different category.
-          </Text>
-        </>
-      )}
-    </View>
-  );
+        </View>
+      );
+    }
+    return (
+      <View style={styles.emptyState}>
+        <Ionicons name="search-outline" size={40} color={COLORS.textLight} />
+        <Text style={styles.emptyTitle}>No centers found</Text>
+        <Text style={styles.emptyText}>
+          No recycling centers match this filter. Try a different category.
+        </Text>
+      </View>
+    );
+  }, [loading, error, activeFilter, fetchCenters]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -325,13 +339,15 @@ export default function CentersScreen() {
       />
 
       <FlatList
+        key="centers-list"
         data={centers}
         keyExtractor={(item) => item.id}
         renderItem={renderCenter}
-        ListHeaderComponent={ListHeader}
-        ListEmptyComponent={ListEmpty}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmpty}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

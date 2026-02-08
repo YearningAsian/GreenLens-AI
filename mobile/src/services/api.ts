@@ -276,16 +276,25 @@ export async function getDirections(
 }
 
 export async function getRecyclingCenters(category?: string, city?: string) {
-  const params = new URLSearchParams();
-  if (category) params.append("category", category);
-  if (city) params.append("city", city);
-
-  const url = `${API_BASE_URL}/api/centers?${params.toString()}`;
-  const response = await fetch(url);
-
-  if (!response.ok) {
+  // Use Convex instead of backend API for better reliability
+  try {
+    let centers;
+    if (category && category !== "all") {
+      // Filter by category
+      centers = await convexQuery("recyclingCenters:getCentersByCategory", {
+        category,
+        state: "Georgia",
+      });
+    } else if (city) {
+      // Filter by city
+      centers = await convexQuery("recyclingCenters:getCentersByCity", { city });
+    } else {
+      // Get all centers for Georgia
+      centers = await convexQuery("recyclingCenters:getAllCenters", { state: "Georgia" });
+    }
+    return { centers, count: centers.length };
+  } catch (error) {
+    console.error("[API] Failed to fetch centers from Convex:", error);
     throw new Error("Failed to fetch centers");
   }
-
-  return response.json();
 }

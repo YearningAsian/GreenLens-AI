@@ -40,7 +40,7 @@ const RANK_COLORS = ["#facc15", "#94a3b8", "#cd7f32"];
 
 export default function HomeScreen() {
   const greeting = getGreeting();
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, prefetched } = useAuth();
   const firstName = user?.name?.split(" ")[0] ?? "there";
   const levelInfo = user ? getLevelInfo(user.xp) : { level: 1, xp: 0, progress: 0, currentThreshold: 0, nextThreshold: 100 };
   const tasks = user?.dailyTasks ?? [];
@@ -83,7 +83,10 @@ export default function HomeScreen() {
     if (!user) return;
     (async () => {
       try {
-        const all = await fetchAllUsers(user.state);
+        // Use prefetched data if available, otherwise fetch fresh
+        const all = prefetched?.allUsers?.length
+          ? prefetched.allUsers
+          : await fetchAllUsers(user.state);
         const sorted = all
           .sort((a, b) => b.totalWeightDiverted - a.totalWeightDiverted)
           .slice(0, 5)
@@ -100,7 +103,9 @@ export default function HomeScreen() {
               xp: u.xp,
               level: u.level,
               avatar: u.name.charAt(0),
-              profileImage: u.profileImageUrl,
+              profileImage: u.profileImageUrl
+                ? u.profileImageUrl.replace("/svg?", "/png?")
+                : undefined,
             };
           });
 

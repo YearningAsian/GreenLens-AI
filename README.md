@@ -7,8 +7,7 @@
 
 ## 👥 Team
 
-**Colin Onevathana** — Full-Stack Developer  
-*Georgia Institute of Technology*
+**Colin Onevathana** — Full-Stack Developer
 
 ---
 
@@ -60,7 +59,7 @@ GreenLens AI addresses the United States' **600 million tons of annual landfill 
 
 ---
 
-## ⚠️ Major Problems & How We Overcame Them
+## ⚠️ Problems & How We Overcame Them
 
 ### **1. AI Model Inaccuracies**
 **Problem:** Gemini 2.5 Flash occasionally misassigned ambiguous materials (wet cardboard, mixed loads, contaminated recyclables) bad weights. Initial accuracy was ~75%, with confidence scores often misleading. This undermined the core value proposition of instant, trustworthy waste identification.
@@ -97,7 +96,37 @@ This project utilizes the following public frameworks and APIs:
 ### **Data Sources**
 - **[Waste Classification Dataset](https://www.kaggle.com/datasets/techsash/waste-classification-data)** by Sashaank Sekar — 25,077 labeled images (Kaggle)
 
----
+
+**Architecture**
+┌─────────────────────────────────────────────────────────┐
+│                     MOBILE APP                          │
+│        Expo / React Native / TypeScript                 │
+│   Camera • GPS • Image Picker • Haptics • Maps          │
+└─────────────────────────────────────────────────────────┘
+                           ▲
+                           │ REST API
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│                  FASTAPI BACKEND                        │
+│              Python • Uvicorn • Gemini                  │
+│      /api/scan • /api/correction • /api/centers         │
+└─────────────────────────────────────────────────────────┘
+                           ▲
+                           │ Convex Mutations
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│                  CONVEX DATABASE                        │
+│           Real-time Sync • Serverless Functions         │
+│   Users • Scans • Badges • Goals • Leaderboard          │
+└─────────────────────────────────────────────────────────┘
+                           ▲
+                           │ Convex Queries
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│                    WEB DASHBOARD                        │
+│           Next.js • React • Recharts • Leaflet          │
+│   Analytics • Reports • Leaderboards • Heatmaps         │
+└─────────────────────────────────────────────────────────┘
 
 ## 🚀 Getting Started
 
@@ -237,5 +266,3 @@ MIT License — See [LICENSE](LICENSE) for details.
 Email: business@onecolin.dev 
 LinkedIn: [linkedin.com/in/onecolin](https://linkedin.com/in/onecolin)  
 ---
-
-**Built with 💚 for a sustainable future**

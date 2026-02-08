@@ -42,6 +42,10 @@ android/
 !.env.example
 !.env.local.example
 
+# Mobile-specific secrets
+mobile/.env
+mobile/app.json
+
 # ── Datasets / Training ──────────────────────────────────────
 backend/training/dataset/
 

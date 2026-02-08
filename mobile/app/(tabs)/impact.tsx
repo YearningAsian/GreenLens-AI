@@ -131,7 +131,7 @@ function FlipBadge({ badge, earned }: { badge: typeof badges[0]; earned: boolean
 }
 
 export default function ImpactScreen() {
-  const { completeTask, user } = useAuth();
+  const { completeTask, user, prefetched } = useAuth();
 
   // Derive stats from DB user
   const totalWeight = user?.totalWeightDiverted ?? 0;
@@ -148,7 +148,10 @@ export default function ImpactScreen() {
     if (!user?.email) return;
     (async () => {
       try {
-        const scans = await fetchUserScans(user.email);
+        // Use prefetched scans if available, otherwise fetch fresh
+        const scans = prefetched?.userScans?.length
+          ? prefetched.userScans
+          : await fetchUserScans(user.email);
         const agg = { recyclable: 0, organic: 0, "non-recyclable": 0 };
         if (scans && Array.isArray(scans)) {
           for (const s of scans) {

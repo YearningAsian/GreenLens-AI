@@ -232,6 +232,9 @@ export default function ScanScreen() {
 
   const handleSubmit = async () => {
     if (!result || result.needs_rescan) return;
+    // Capture result snapshot before any async work to avoid
+    // "rescan of undefined" if state resets mid-flight
+    const snap = result;
     setSubmitting(true);
     try {
       let lat: number | undefined;
@@ -268,11 +271,11 @@ export default function ScanScreen() {
         locationName,
         city,
         state,
-        categories: result.categories,
-        totalWeightLbs: result.total_weight_estimate_lbs,
-        co2SavedKg: result.co2_saved_kg,
-        confidence: result.classification_confidence,
-        summary: result.summary,
+        categories: snap.categories,
+        totalWeightLbs: snap.total_weight_estimate_lbs,
+        co2SavedKg: snap.co2_saved_kg,
+        confidence: snap.classification_confidence,
+        summary: snap.summary,
         latitude: lat,
         longitude: lng,
         xpAwarded: 25,
@@ -281,7 +284,7 @@ export default function ScanScreen() {
       // Update user stats in Convex (weight, CO₂, scan count)
       if (user?.email) {
         try {
-          await updateUserStatsDb(user.email, result.total_weight_estimate_lbs, result.co2_saved_kg);
+          await updateUserStatsDb(user.email, snap.total_weight_estimate_lbs, snap.co2_saved_kg);
           await addXpDb(user.email, 25, "scan");
         } catch (e) { console.warn("[Scan] DB stats update failed:", e); }
       }
