@@ -1,0 +1,22 @@
+[
+  {
+    "original_categories": [
+      {
+        "name": "recyclable",
+        "percentage": 80
+      }
+    ],
+    "corrected_categories": [
+      {
+        "name": "recyclable",
+        "percentage": 60
+      },
+      {
+        "name": "organic",
+        "percentage": 40
+      }
+    ],
+    "image_description": "test image",
+    "timestamp": "2026-02-07T16:59:29.292633"
+  }
+]

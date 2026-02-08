@@ -1,0 +1,210 @@
+@import "tailwindcss";
+
+:root {
+  --green-50: #f0fdf4;
+  --green-100: #dcfce7;
+  --green-200: #bbf7d0;
+  --green-300: #86efac;
+  --green-400: #4ade80;
+  --green-500: #22c55e;
+  --green-600: #16a34a;
+  --green-700: #15803d;
+  --green-800: #166534;
+  --green-900: #14532d;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* ── Leaflet overrides ──
+   Leaflet relies on content-box sizing and unset img constraints.
+   These MUST live in globals so they beat any scoped/JSX styles.     */
+.leaflet-container,
+.leaflet-container *,
+.leaflet-container *::before,
+.leaflet-container *::after {
+  box-sizing: content-box !important;
+}
+.leaflet-tile-pane {
+  will-change: transform;
+}
+.leaflet-tile {
+  image-rendering: auto;
+}
+.leaflet-container img {
+  max-width: none  !important;
+  max-height: none !important;
+  padding: 0  !important;
+  margin: 0   !important;
+  border: none !important;
+}
+.leaflet-marker-icon {
+  border: none !important;
+  background: transparent !important;
+}
+.leaflet-popup-pane {
+  z-index: 700;
+}
+/* Popup theme */
+.gl-popup .leaflet-popup-content-wrapper {
+  background: #1a2420 !important;
+  color: #fff         !important;
+  border: 1px solid rgba(34,197,94,0.2) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
+}
+.gl-popup .leaflet-popup-tip {
+  background: #1a2420 !important;
+}
+.leaflet-control-zoom {
+  border: 1px solid rgba(34,197,94,0.3) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+.leaflet-control-zoom a {
+  background: #1a2420 !important;
+  color: #4ade80 !important;
+  border-bottom: 1px solid rgba(34,197,94,0.2) !important;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: #f8faf9;
+  color: #1a1a2e;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f0fdf4;
+}
+::-webkit-scrollbar-thumb {
+  background: #86efac;
+  border-radius: 3px;
+}
+
+/* Glassmorphism card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(34, 197, 94, 0.15);
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+}
+
+/* Gradient highlight */
+.green-gradient {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 50%, #15803d 100%);
+}
+
+.green-gradient-light {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+}
+
+/* Animated pulse for live indicator */
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+.live-pulse {
+  animation: livePulse 2s ease-in-out infinite;
+}
+
+/* Stat card hover */
+.stat-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(22, 163, 74, 0.15);
+}
+
+/* ── Slide-in on first seen ── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideLeft {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideRight {
+  from { opacity: 0; transform: translateX(-32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.slide-hidden {
+  opacity: 0;
+}
+.slide-up {
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.slide-left {
+  animation: slideLeft 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.slide-right {
+  animation: slideRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Red circle drawing (hero "Closing") ── */
+@keyframes drawCircle {
+  to { stroke-dashoffset: 0; }
+}
+.circle-draw {
+  stroke-dasharray: 680;
+  stroke-dashoffset: 680;
+  animation: drawCircle 1.4s cubic-bezier(0.25, 0.1, 0.25, 1) 0.5s forwards;
+}
+
+/* ── Red underline drawing (hand-drawn SVG) ── */
+@keyframes drawLine {
+  to { stroke-dashoffset: 0; }
+}
+.underline-draw {
+  position: relative;
+  display: inline-block;
+}
+.underline-draw svg.ul-svg {
+  position: absolute;
+  bottom: -8px;
+  left: -2%;
+  width: 104%;
+  height: 12px;
+  pointer-events: none;
+}
+.underline-draw svg.ul-svg path {
+  stroke-dasharray: 500;
+  stroke-dashoffset: 500;
+}
+.underline-draw.visible svg.ul-svg path {
+  animation: drawLine 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ── Floating math equations ── */
+@keyframes floatA {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%      { transform: translateY(-18px) rotate(2deg); }
+}
+@keyframes floatB {
+  0%, 100% { transform: translateY(0) rotate(1deg); }
+  50%      { transform: translateY(-14px) rotate(-3deg); }
+}
+@keyframes floatC {
+  0%, 100% { transform: translateY(0) rotate(2deg); }
+  50%      { transform: translateY(-20px) rotate(-1deg); }
+}
+.float-eq {
+  position: absolute;
+  font-size: 14px;
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  color: rgba(107, 114, 128, 0.5);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 0;
+}
+.float-eq-a { animation: floatA 6s ease-in-out infinite; }
+.float-eq-b { animation: floatB 5s ease-in-out infinite; }
+.float-eq-c { animation: floatC 7s ease-in-out infinite; }
