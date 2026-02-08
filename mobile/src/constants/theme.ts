@@ -1,12 +1,39 @@
-// Use your machine's LAN IP so the mobile device can reach the backend.
-// On Android emulator use 10.0.2.2; for Expo Go on a real device use LAN IP.
+// Backend API — auto-detect dev machine IP from Expo
 import Constants from "expo-constants";
+import { Platform } from "react-native";
 
+// Your dev machine LAN IP (used when tunnel mode can't auto-detect)
 const DEV_MACHINE_IP = "192.168.184.187";
-const API_BASE_URL =
-  Constants.executionEnvironment === "storeClient"
-    ? "https://api.greenlens.org"  // production
-    : `http://${DEV_MACHINE_IP}:8000`;
+
+function getApiBaseUrl(): string {
+  // Production build
+  if (Constants.executionEnvironment === "storeClient") {
+    return "https://api.greenlens.org";
+  }
+  // Dev: extract host IP from Expo dev server so physical devices can reach backend
+  const debuggerHost =
+    (Constants.expoConfig as any)?.hostUri ??
+    (Constants as any).manifest?.debuggerHost ??
+    (Constants as any).manifest2?.extra?.expoGo?.debuggerHost;
+  if (debuggerHost) {
+    const host = debuggerHost.split(":")[0];
+    // LAN IP (e.g. 192.168.x.x) — use it directly
+    if (host && /^\d+\.\d+\.\d+\.\d+$/.test(host) && host !== "127.0.0.1") {
+      return `http://${host}:8000`;
+    }
+  }
+  // Emulator shortcuts
+  if (Platform.OS === "android") return `http://10.0.2.2:8000`;
+  if (Platform.OS === "ios") return `http://127.0.0.1:8000`;
+  // Fallback: hardcoded dev machine LAN IP (for tunnel mode on physical devices)
+  return `http://${DEV_MACHINE_IP}:8000`;
+}
+
+const API_BASE_URL = getApiBaseUrl();
+console.log("[GreenLens] API_BASE_URL =", API_BASE_URL);
+
+// Convex HTTP API for database reads/writes
+export const CONVEX_URL = "https://laudable-ermine-139.convex.cloud";
 
 export const COLORS = {
   primary: "#22c55e",

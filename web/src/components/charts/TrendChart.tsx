@@ -10,19 +10,22 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-
-const data = [
-  { month: "Jul", weight: 12400, co2: 3100, scans: 180 },
-  { month: "Aug", weight: 15800, co2: 3900, scans: 220 },
-  { month: "Sep", weight: 18200, co2: 4500, scans: 290 },
-  { month: "Oct", weight: 22000, co2: 5100, scans: 340 },
-  { month: "Nov", weight: 28400, co2: 6800, scans: 410 },
-  { month: "Dec", weight: 25100, co2: 6200, scans: 380 },
-  { month: "Jan", weight: 31200, co2: 7800, scans: 460 },
-  { month: "Feb", weight: 34800, co2: 8400, scans: 520 },
-];
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { useStateSelection } from "@/context/StateContext";
 
 export function TrendChart() {
+  const { selectedState } = useStateSelection();
+  const data = useQuery(api.scans.getMonthlyTrend, { state: selectedState });
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[280px] text-sm text-gray-400">
+        Loading trend data…
+      </div>
+    );
+  }
+
   return (
     <ResponsiveContainer width="100%" height={280}>
       <AreaChart data={data}>
@@ -50,7 +53,7 @@ export function TrendChart() {
         <Legend />
         <Area
           type="monotone"
-          dataKey="weight"
+          dataKey="diverted"
           name="Weight (lbs)"
           stroke="#22c55e"
           strokeWidth={2.5}

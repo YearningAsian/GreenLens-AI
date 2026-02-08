@@ -176,7 +176,7 @@ export default function CentersScreen() {
           </View>
           <View style={styles.centerInfo}>
             <Text style={styles.centerName}>{center.name}</Text>
-            <Text style={styles.centerCity}>{center.city}, GA</Text>
+            <Text style={styles.centerCity}>{center.city}</Text>
           </View>
           {distance && (
             <View style={styles.distanceBadge}>

@@ -32,17 +32,17 @@ export function Sidebar() {
     <aside className="fixed top-0 left-0 h-screen w-64 bg-white border-r border-green-100 flex flex-col z-40">
       {/* Brand */}
       <div className="px-6 py-6 border-b border-green-100">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl green-gradient flex items-center justify-center shadow-lg shadow-green-200">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-10 h-10 rounded-xl green-gradient flex items-center justify-center shadow-lg shadow-green-200 group-hover:shadow-green-300 transition-shadow">
             <Leaf className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-gray-900">GreenLens</h1>
+            <h1 className="text-lg font-bold text-gray-900 group-hover:text-green-700 transition-colors">GreenLens</h1>
             <p className="text-[10px] uppercase tracking-wider text-green-600 font-semibold">
               Community Impact
             </p>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* State Selector */}

@@ -9,11 +9,9 @@ import { Co2GaugeChart } from "@/components/charts/Co2GaugeChart";
 import { RecentScans } from "@/components/RecentScans";
 import { GeorgiaHeatmap } from "@/components/GeorgiaHeatmap";
 import { LeaderboardPanel } from "@/components/LeaderboardPanel";
+import { SlideIn } from "@/components/SlideIn";
 import { useStateSelection } from "@/context/StateContext";
 import {
-  Leaf,
-  Bell,
-  Search,
   Info,
 } from "lucide-react";
 import { useState } from "react";
@@ -33,29 +31,6 @@ export default function Dashboard() {
             <p className="text-sm text-gray-500 mt-0.5">
               Real-time waste diversion analytics — {selectedState} Pilot ({stateConfig.cities.length} cities)
             </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search scans, volunteers..."
-                className="pl-10 pr-4 py-2 rounded-xl bg-green-50 border border-green-100 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 w-64"
-              />
-            </div>
-            <button className="relative p-2 rounded-xl hover:bg-green-50 transition-colors">
-              <Bell className="w-5 h-5 text-gray-600" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-green-500 rounded-full live-pulse" />
-            </button>
-            <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
-              <div className="w-9 h-9 rounded-full green-gradient flex items-center justify-center">
-                <Leaf className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-800">GreenLens</p>
-                <p className="text-xs text-gray-500">Community</p>
-              </div>
-            </div>
           </div>
         </header>
 
@@ -98,60 +73,76 @@ export default function Dashboard() {
           )}
 
           {/* Stats cards */}
-          <StatsGrid />
+          <SlideIn direction="up" delay={0}>
+            <StatsGrid />
+          </SlideIn>
 
           {/* Charts row 1 */}
           <div className="grid grid-cols-12 gap-6">
-            <div className="col-span-8 glass-card p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Waste Diversion Trend
-              </h3>
-              <TrendChart />
-            </div>
-            <div className="col-span-4 glass-card p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                CO₂ Offset Goal
-              </h3>
-              <Co2GaugeChart />
-            </div>
+            <SlideIn direction="up" delay={100} className="col-span-8">
+              <div className="glass-card p-6 h-full">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Waste Diversion Trend
+                </h3>
+                <TrendChart />
+              </div>
+            </SlideIn>
+            <SlideIn direction="left" delay={200} className="col-span-4">
+              <div className="glass-card p-6 h-full">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  CO₂ Offset Goal
+                </h3>
+                <Co2GaugeChart />
+              </div>
+            </SlideIn>
           </div>
 
           {/* Charts row 2 */}
           <div className="grid grid-cols-12 gap-6">
-            <div className="col-span-5 glass-card p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Waste Categories
-              </h3>
-              <WasteCategoryChart />
-            </div>
-            <div className="col-span-7 glass-card p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                City Impact Comparison
-              </h3>
-              <CityImpactChart />
-            </div>
+            <SlideIn direction="right" delay={0} className="col-span-5">
+              <div className="glass-card p-6 h-full">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Waste Categories
+                </h3>
+                <WasteCategoryChart />
+              </div>
+            </SlideIn>
+            <SlideIn direction="left" delay={100} className="col-span-7">
+              <div className="glass-card p-6 h-full">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  City Impact Comparison
+                </h3>
+                <CityImpactChart />
+              </div>
+            </SlideIn>
           </div>
 
           {/* Bottom row */}
           <div className="grid grid-cols-12 gap-6">
-            <div className="col-span-4 glass-card p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                {selectedState} Heatmap
-              </h3>
-              <GeorgiaHeatmap />
-            </div>
-            <div className="col-span-4 glass-card p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Top Diverters
-              </h3>
-              <LeaderboardPanel />
-            </div>
-            <div className="col-span-4 glass-card p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Recent Scans
-              </h3>
-              <RecentScans />
-            </div>
+            <SlideIn direction="up" delay={0} className="col-span-4">
+              <div className="glass-card p-6 h-full">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  {selectedState} Heatmap
+                </h3>
+                <GeorgiaHeatmap />
+              </div>
+            </SlideIn>
+            <SlideIn direction="up" delay={100} className="col-span-4">
+              <div className="glass-card p-6 h-full">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Top Diverters
+                </h3>
+                <LeaderboardPanel />
+              </div>
+            </SlideIn>
+            <SlideIn direction="up" delay={200} className="col-span-4">
+              <div className="glass-card p-6 h-full">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Recent Scans
+                </h3>
+                <RecentScans />
+              </div>
+            </SlideIn>
           </div>
         </div>
       </main>

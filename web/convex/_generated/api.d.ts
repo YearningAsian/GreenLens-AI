@@ -8,9 +8,20 @@
  * @module
  */
 
-import type * as jobSites from "../jobSites.js";
+import type * as activityFeed from "../activityFeed.js";
+import type * as ai from "../ai.js";
+import type * as badges from "../badges.js";
+import type * as communityGoals from "../communityGoals.js";
+import type * as corrections from "../corrections.js";
+import type * as dailyTaskCompletions from "../dailyTaskCompletions.js";
+import type * as dailyTasks from "../dailyTasks.js";
+import type * as leaderboard from "../leaderboard.js";
+import type * as notifications from "../notifications.js";
+import type * as recyclingCenters from "../recyclingCenters.js";
+import type * as reports from "../reports.js";
 import type * as scans from "../scans.js";
 import type * as seed from "../seed.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -19,9 +30,20 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  jobSites: typeof jobSites;
+  activityFeed: typeof activityFeed;
+  ai: typeof ai;
+  badges: typeof badges;
+  communityGoals: typeof communityGoals;
+  corrections: typeof corrections;
+  dailyTaskCompletions: typeof dailyTaskCompletions;
+  dailyTasks: typeof dailyTasks;
+  leaderboard: typeof leaderboard;
+  notifications: typeof notifications;
+  recyclingCenters: typeof recyclingCenters;
+  reports: typeof reports;
   scans: typeof scans;
   seed: typeof seed;
+  users: typeof users;
 }>;
 
 /**

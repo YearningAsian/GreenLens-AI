@@ -21,7 +21,7 @@ interface ProfileHeaderProps {
 }
 
 export default function ProfileHeader({ title, subtitle, variant = "default" }: ProfileHeaderProps) {
-  const { user, logout, updateProfileImage, updateRole } = useAuth();
+  const { user, logout, updateProfileImage, updateRole, updateLeaderboardPrivacy } = useAuth();
   const [showMenu, setShowMenu] = useState(false);
   const [showRolePicker, setShowRolePicker] = useState(false);
   const isGreeting = variant === "greeting";
@@ -138,6 +138,27 @@ export default function ProfileHeader({ title, subtitle, variant = "default" }: 
                 <Ionicons name="calendar-outline" size={16} color={COLORS.textSecondary} />
                 <Text style={styles.menuDetailText}>Joined {user?.joinedDate ?? "—"}</Text>
               </View>
+            </View>
+
+            <View style={styles.menuDivider} />
+
+            <View style={styles.menuDetails}>
+              <TouchableOpacity
+                style={styles.menuDetailRow}
+                activeOpacity={0.6}
+                onPress={() => updateLeaderboardPrivacy(!(user?.leaderboardPrivacy ?? false))}
+              >
+                <Ionicons name="eye-off-outline" size={16} color={COLORS.violet} />
+                <Text style={[styles.menuDetailText, { flex: 1 }]}>
+                  Privacy
+                </Text>
+                <View style={[styles.toggleTrack, user?.leaderboardPrivacy && styles.toggleTrackActive]}>
+                  <View style={[styles.toggleThumb, user?.leaderboardPrivacy && styles.toggleThumbActive]} />
+                </View>
+              </TouchableOpacity>
+              <Text style={styles.privacyHint}>
+                When enabled, your name appears as "M**** J****"
+              </Text>
             </View>
 
             <View style={styles.menuDivider} />
@@ -428,5 +449,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textSecondary,
     marginTop: 2,
+  },
+  toggleTrack: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#e5e7eb",
+    padding: 2,
+    justifyContent: "center",
+  },
+  toggleTrackActive: {
+    backgroundColor: COLORS.violet,
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+    alignSelf: "flex-start",
+  },
+  toggleThumbActive: {
+    alignSelf: "flex-end",
+  },
+  privacyHint: {
+    fontSize: 11,
+    color: COLORS.textLight,
+    marginTop: 4,
+    marginLeft: 32,
+    fontStyle: "italic",
   },
 });

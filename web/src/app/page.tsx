@@ -13,7 +13,9 @@ import {
   Info,
   Heart,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 /* ─── Animated counter ─── */
 function AnimatedCounter({ end, duration = 2000, suffix = "", prefix = "" }: { end: number; duration?: number; suffix?: string; prefix?: string }) {
@@ -35,7 +37,36 @@ function AnimatedCounter({ end, duration = 2000, suffix = "", prefix = "" }: { e
   return <span>{prefix}{count.toLocaleString()}{suffix}</span>;
 }
 
+/* ─── Intersection observer hook (fires once) ─── */
+function useInView(threshold = 0.2) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [threshold]);
+  return [ref, visible] as const;
+}
+
 export default function LandingPage() {
+  const stats = useQuery(api.scans.getDashboardStats, {});
+  const allUsers = useQuery(api.users.getAllUsers, {});
+
+  const [impactRef, impactVisible] = useInView(0.2);
+  const [stepsRef, stepsVisible] = useInView(0.15);
+  const [catRef, catVisible] = useInView(0.2);
+
+  const totalWeight = stats?.totalWeightLbs ?? 0;
+  const totalCo2 = stats?.totalCo2SavedKg ?? 0;
+  const totalScans = stats?.totalScans ?? 0;
+  const totalVolunteers = allUsers?.length ?? 0;
+
   return (
     <div className="min-h-screen bg-[#f8faf9]">
       {/* ─── Navbar ─── */}
@@ -53,7 +84,6 @@ export default function LandingPage() {
           <div className="flex items-center gap-6">
             <a href="#about" className="text-sm text-gray-600 hover:text-green-700 font-medium">About</a>
             <a href="#methodology" className="text-sm text-gray-600 hover:text-green-700 font-medium">Methodology</a>
-            <a href="#impact" className="text-sm text-gray-600 hover:text-green-700 font-medium">Impact</a>
             <Link
               href="/dashboard"
               className="px-5 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors shadow-lg shadow-green-200"
@@ -71,7 +101,20 @@ export default function LandingPage() {
           <span className="text-xs font-semibold text-green-700">National Non-Profit Initiative · Georgia & Tennessee Pilots</span>
         </div>
         <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight max-w-4xl mx-auto">
-          Closing the Loop on{" "}
+          <span className="relative inline-block">
+            Closing
+            <svg className="absolute pointer-events-none overflow-visible" style={{ left: '-14%', top: '-30%', width: '136%', height: '160%' }} viewBox="0 0 240 90" fill="none">
+              <path
+                d="M 175 14 C 145 -4, 65 -6, 28 16 C 4 30, -4 48, 8 64 C 20 80, 90 86, 150 82 C 190 78, 215 62, 210 44 C 206 28, 190 18, 175 14"
+                stroke="#ef4444"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="circle-draw"
+              />
+            </svg>
+          </span>{" "}
+          the Loop on{" "}
           <span className="bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">
             Community Waste
           </span>
@@ -102,17 +145,17 @@ export default function LandingPage() {
 
       {/* ─── Live Stats Counter ─── */}
       <section id="impact" className="bg-white border-y border-green-100 py-16">
-        <div className="max-w-6xl mx-auto px-6">
+        <div ref={impactRef} className={`max-w-6xl mx-auto px-6 transition-all duration-700 ease-out ${impactVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <p className="text-center text-sm text-gray-500 mb-8 flex items-center justify-center gap-2">
             <span className="w-2 h-2 bg-green-500 rounded-full live-pulse" />
             Live community impact — updated in real time
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { label: "Total Waste Scanned", value: 184200, suffix: " lbs", icon: Scale, color: "text-green-600", bg: "bg-green-50" },
-              { label: "CO₂ Emissions Avoided", value: 42600, suffix: " kg", icon: CloudOff, color: "text-violet-600", bg: "bg-violet-50" },
-              { label: "Community Scans", value: 2847, suffix: "", icon: Smartphone, color: "text-blue-600", bg: "bg-blue-50" },
-              { label: "Active Volunteers", value: 340, suffix: "+", icon: Users, color: "text-amber-600", bg: "bg-amber-50" },
+              { label: "Total Waste Scanned", value: Math.round(totalWeight), suffix: " lbs", icon: Scale, color: "text-green-600", bg: "bg-green-50" },
+              { label: "CO₂ Emissions Avoided", value: Math.round(totalCo2), suffix: " kg", icon: CloudOff, color: "text-violet-600", bg: "bg-violet-50" },
+              { label: "Community Scans", value: totalScans, suffix: "", icon: Smartphone, color: "text-blue-600", bg: "bg-blue-50" },
+              { label: "Active Volunteers", value: totalVolunteers, suffix: "", icon: Users, color: "text-amber-600", bg: "bg-amber-50" },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className={`w-14 h-14 rounded-2xl ${stat.bg} flex items-center justify-center mx-auto mb-3`}>
@@ -136,7 +179,7 @@ export default function LandingPage() {
             A simple 3-step process to divert waste from landfills — piloting across Georgia & Tennessee.
           </p>
         </div>
-        <div className="grid md:grid-cols-3 gap-8">
+        <div ref={stepsRef} className="grid md:grid-cols-3 gap-8">
           {[
             {
               icon: Smartphone,
@@ -156,8 +199,8 @@ export default function LandingPage() {
               desc: "Get directions to the nearest drop-off center. Every scan updates the community dashboard in real time.",
               color: "bg-blue-50 text-blue-600",
             },
-          ].map((step) => (
-            <div key={step.title} className="glass-card p-8 text-center hover:shadow-lg transition-shadow">
+          ].map((step, idx) => (
+            <div key={step.title} className={`glass-card p-8 text-center hover:shadow-lg transition-all duration-700 ease-out ${stepsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`} style={{ transitionDelay: stepsVisible ? `${idx * 200}ms` : '0ms' }}>
               <div className={`w-16 h-16 rounded-2xl ${step.color} flex items-center justify-center mx-auto mb-5`}>
                 <step.icon className="w-7 h-7" />
               </div>
@@ -170,9 +213,14 @@ export default function LandingPage() {
 
       {/* ─── Waste Categories ─── */}
       <section className="bg-white border-y border-green-100 py-20">
-        <div className="max-w-6xl mx-auto px-6">
+        <div ref={catRef} className="max-w-6xl mx-auto px-6">
           <h2 className="text-3xl font-extrabold text-gray-900 text-center mb-12">
-            Three Simple Categories
+            <span className={`underline-draw ${catVisible ? 'visible' : ''}`}>
+              Three Simple Categories
+              <svg className="ul-svg" viewBox="0 0 400 10" fill="none" preserveAspectRatio="none">
+                <path d="M 2 8 C 100 6, 200 5, 300 4 C 350 3.5, 380 3, 398 3" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
+              </svg>
+            </span>
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="rounded-2xl border-2 border-green-200 bg-green-50/50 p-8 text-center">
@@ -207,8 +255,15 @@ export default function LandingPage() {
       </section>
 
       {/* ─── Methodology ─── */}
-      <section id="methodology" className="max-w-5xl mx-auto px-6 py-20">
-        <div className="text-center mb-12">
+      <section id="methodology" className="max-w-5xl mx-auto px-6 py-20 relative">
+        {/* Floating math equations — actual dashboard formulas */}
+        <span className="float-eq float-eq-a" style={{ top: '5%', left: '18%' }}>TW = Σ(w₁ + w₂ + w₃ + …)</span>
+        <span className="float-eq float-eq-b" style={{ top: '20%', right: '18%' }}>CO₂ = Σ(wᵢ × cᵢ)</span>
+        <span className="float-eq float-eq-c" style={{ top: '46%', left: '15%' }}>DR = (R + O) / TW × 100%</span>
+        <span className="float-eq float-eq-a" style={{ top: '74%', right: '16%', animationDelay: '2s' }}>cᵢ ∈ {'{'} 1.02, 0.34, 0.05 {'}'}</span>
+        <span className="float-eq float-eq-b" style={{ top: '32%', left: '20%', animationDelay: '1s' }}>R = Σ wᵢ | recyclable</span>
+        <span className="float-eq float-eq-c" style={{ top: '12%', right: '22%', animationDelay: '3s', fontSize: '12px' }}>O = Σ wᵢ | organic</span>
+        <div className="text-center mb-12 relative z-10">
           <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 px-4 py-1.5 rounded-full mb-4">
             <Info className="w-3.5 h-3.5 text-blue-600" />
             <span className="text-xs font-semibold text-blue-700">Transparency</span>
@@ -218,7 +273,7 @@ export default function LandingPage() {
             Our CO₂ and weight estimates are grounded in EPA research.
           </p>
         </div>
-        <div className="space-y-6">
+        <div className="space-y-6 relative z-10">
           <div className="glass-card p-6 border-l-4 border-green-500">
             <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
               <Scale className="w-5 h-5 text-green-600" />
@@ -277,7 +332,7 @@ export default function LandingPage() {
             Join the Movement
           </h2>
           <p className="text-green-100 text-lg mb-8 max-w-xl mx-auto">
-            Pick your role — Neighborhood Volunteer, Independent Hauler, or Government Liaison — and start scanning today.
+            Pick your role — Neighborhood Volunteer, General Worker, or Government Worker — and start scanning today.
           </p>
           <Link
             href="/dashboard"

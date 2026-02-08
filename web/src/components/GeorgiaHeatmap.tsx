@@ -1,41 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useStateSelection, StateName } from "@/context/StateContext";
+import { useEffect, useRef, useState, useMemo } from "react";
+import { useStateSelection } from "@/context/StateContext";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
-/* ─── City data per state ─── */
-type Intensity = "high" | "medium" | "low";
-
-interface CityData {
-  name: string;
-  lat: number;
-  lng: number;
-  scans: number;
-  intensity: Intensity;
-}
-
-const CITY_DATA: Record<StateName, CityData[]> = {
-  Georgia: [
-    { name: "Atlanta",   lat: 33.749,  lng: -84.388, scans: 1240, intensity: "high" },
-    { name: "Augusta",   lat: 33.474,  lng: -81.975, scans: 520,  intensity: "medium" },
-    { name: "Columbus",  lat: 32.461,  lng: -84.988, scans: 410,  intensity: "medium" },
-    { name: "Macon",     lat: 32.841,  lng: -83.632, scans: 340,  intensity: "medium" },
-    { name: "Savannah",  lat: 32.081,  lng: -81.091, scans: 280,  intensity: "low" },
-    { name: "Athens",    lat: 33.961,  lng: -83.378, scans: 150,  intensity: "low" },
-  ],
-  Tennessee: [
-    { name: "Nashville",    lat: 36.163,  lng: -86.781, scans: 980,  intensity: "high" },
-    { name: "Memphis",      lat: 35.150,  lng: -90.049, scans: 720,  intensity: "high" },
-    { name: "Knoxville",    lat: 35.961,  lng: -83.921, scans: 460,  intensity: "medium" },
-    { name: "Chattanooga",  lat: 35.046,  lng: -85.309, scans: 350,  intensity: "medium" },
-    { name: "Clarksville",  lat: 36.530,  lng: -87.359, scans: 180,  intensity: "low" },
-  ],
+/* ─── Geographic coordinates (physical constants, not mock data) ─── */
+const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
+  Atlanta:      { lat: 33.749,  lng: -84.388 },
+  Augusta:      { lat: 33.474,  lng: -81.975 },
+  Columbus:     { lat: 32.461,  lng: -84.988 },
+  Macon:        { lat: 32.841,  lng: -83.632 },
+  Savannah:     { lat: 32.081,  lng: -81.091 },
+  Athens:       { lat: 33.961,  lng: -83.378 },
+  Nashville:    { lat: 36.163,  lng: -86.781 },
+  Memphis:      { lat: 35.150,  lng: -90.049 },
+  Knoxville:    { lat: 35.961,  lng: -83.921 },
+  Chattanooga:  { lat: 35.046,  lng: -85.309 },
+  Clarksville:  { lat: 36.530,  lng: -87.359 },
 };
 
+type Intensity = "high" | "medium" | "low";
 const pulseColor = { high: "#22c55e", medium: "#4ade80", low: "#86efac" };
 const dotSize    = { high: 10, medium: 8, low: 7 };
 
-/* We fetch the real US GeoJSON at runtime from a public API */
 const US_GEOJSON_URL =
   "https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json";
 
@@ -43,6 +31,29 @@ export function GeorgiaHeatmap() {
   const mapRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const { selectedState, stateConfig } = useStateSelection();
+  const stats = useQuery(api.scans.getDashboardStats, { state: selectedState });
+
+  /* Derive city markers from live DB stats */
+  const cities = useMemo(() => {
+    if (!stats?.cityStats) return [];
+    const entries = Object.entries(stats.cityStats)
+      .filter(([name]) => CITY_COORDS[name])
+      .map(([name, data]) => ({
+        name,
+        lat: CITY_COORDS[name].lat,
+        lng: CITY_COORDS[name].lng,
+        scans: data.scans,
+      }))
+      .sort((a, b) => b.scans - a.scans);
+
+    if (entries.length === 0) return [];
+    const maxScans = entries[0].scans;
+    return entries.map((c) => {
+      const ratio = c.scans / maxScans;
+      const intensity: Intensity = ratio > 0.6 ? "high" : ratio > 0.3 ? "medium" : "low";
+      return { ...c, intensity };
+    });
+  }, [stats]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -100,7 +111,6 @@ export function GeorgiaHeatmap() {
       }
 
       /* ── City markers with pulsing dots ── */
-      const cities = CITY_DATA[selectedState] || [];
       cities.forEach((city) => {
         const sz = dotSize[city.intensity];
         const cl = pulseColor[city.intensity];
@@ -134,7 +144,7 @@ export function GeorgiaHeatmap() {
         (mapRef.current as any)._leafletMap = null;
       }
     };
-  }, [selectedState, stateConfig]);
+  }, [selectedState, stateConfig, cities]);
 
   return (
     <div className="relative w-full h-[340px] rounded-xl overflow-hidden border border-green-100">

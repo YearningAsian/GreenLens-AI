@@ -1,3 +1,14 @@
+// ── Window Polyfill for React Native ──
+// Fix: window.addEventListener is not a function
+if (typeof window !== 'undefined') {
+  if (!window.addEventListener) {
+    window.addEventListener = () => {};
+  }
+  if (!window.removeEventListener) {
+    window.removeEventListener = () => {};
+  }
+}
+
 import { Stack, useRouter, useSegments, useNavigationContainerRef } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
@@ -26,7 +37,7 @@ function AuthGate() {
     if (!isAuthenticated && !inAuthGroup) {
       router.replace("/login");
     } else if (isAuthenticated && inAuthGroup) {
-      router.replace("/");
+      router.replace("/scan");
     }
   }, [isAuthenticated, segments, isReady]);
 

@@ -17,7 +17,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "tech.buildgreen.greenlens",
       "infoPlist": {
-        "NSCameraUsageDescription": "GreenLens needs camera access to scan construction materials",
+        "NSCameraUsageDescription": "GreenLens needs camera access to scan waste materials",
         "NSLocationWhenInUseUsageDescription": "GreenLens needs your location to find nearby recycling centers"
       }
     },

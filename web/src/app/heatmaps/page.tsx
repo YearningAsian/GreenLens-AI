@@ -1,88 +1,26 @@
 "use client";
 
 import { Sidebar } from "@/components/Sidebar";
-import { useStateSelection, StateName } from "@/context/StateContext";
-import { ScanLine, Layers, MapPin, Filter } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useStateSelection } from "@/context/StateContext";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { ScanLine, Layers, MapPin } from "lucide-react";
+import { useEffect, useRef, useState, useMemo } from "react";
 
-/* ─── Per-state city data ─── */
-interface CityData {
-  name: string;
-  lat: number;
-  lng: number;
-  scans: number;
-}
-
-const CITY_DATA: Record<StateName, CityData[]> = {
-  Georgia: [
-    { name: "Atlanta",  lat: 33.749,  lng: -84.388, scans: 1240 },
-    { name: "Augusta",  lat: 33.474,  lng: -81.975, scans: 520  },
-    { name: "Columbus", lat: 32.461,  lng: -84.988, scans: 410  },
-    { name: "Macon",    lat: 32.841,  lng: -83.632, scans: 340  },
-    { name: "Savannah", lat: 32.081,  lng: -81.091, scans: 280  },
-    { name: "Athens",   lat: 33.961,  lng: -83.378, scans: 150  },
-  ],
-  Tennessee: [
-    { name: "Nashville",   lat: 36.163, lng: -86.781, scans: 980 },
-    { name: "Memphis",     lat: 35.150, lng: -90.049, scans: 720 },
-    { name: "Knoxville",   lat: 35.961, lng: -83.921, scans: 460 },
-    { name: "Chattanooga", lat: 35.046, lng: -85.309, scans: 350 },
-    { name: "Clarksville", lat: 36.530, lng: -87.359, scans: 180 },
-  ],
+/* Geographic coordinates – physical constants */
+const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
+  Atlanta:      { lat: 33.749,  lng: -84.388 },
+  Augusta:      { lat: 33.474,  lng: -81.975 },
+  Columbus:     { lat: 32.461,  lng: -84.988 },
+  Macon:        { lat: 32.841,  lng: -83.632 },
+  Savannah:     { lat: 32.081,  lng: -81.091 },
+  Athens:       { lat: 33.961,  lng: -83.378 },
+  Nashville:    { lat: 36.163,  lng: -86.781 },
+  Memphis:      { lat: 35.150,  lng: -90.049 },
+  Knoxville:    { lat: 35.961,  lng: -83.921 },
+  Chattanooga:  { lat: 35.046,  lng: -85.309 },
+  Clarksville:  { lat: 36.530,  lng: -87.359 },
 };
-
-/* ─── Individual scan markers around each city ─── */
-interface ScanPoint {
-  lat: number;
-  lng: number;
-  material: string;
-  category: "recyclable" | "organic" | "non-recyclable";
-  weight: number;
-  date: string;
-}
-
-function generateScans(state: StateName): ScanPoint[] {
-  const cities = CITY_DATA[state] || [];
-  const materials: Record<string, { category: ScanPoint["category"]; names: string[] }> = {
-    recyclable: { category: "recyclable", names: ["Concrete", "Steel Rebar", "Copper Wire", "Aluminum Siding", "Glass Panel", "Brick"] },
-    organic: { category: "organic", names: ["Wood Framing", "Cardboard", "Drywall (paper)", "Mulch", "Sawdust"] },
-    "non-recyclable": { category: "non-recyclable", names: ["Mixed Debris", "Asbestos Tile", "Treated Lumber", "Painted Drywall", "Fiberglass Insulation"] },
-  };
-
-  const scans: ScanPoint[] = [];
-  const seed = state === "Georgia" ? 42 : 99;
-  let idx = seed;
-  const pseudoRandom = () => {
-    idx = (idx * 16807 + 7) % 2147483647;
-    return (idx % 10000) / 10000;
-  };
-
-  cities.forEach((city) => {
-    const count = Math.floor(city.scans / 30);
-    for (let i = 0; i < count; i++) {
-      const spread = 0.15;
-      const lat = city.lat + (pseudoRandom() - 0.5) * spread * 2;
-      const lng = city.lng + (pseudoRandom() - 0.5) * spread * 2;
-      const catKeys = Object.keys(materials);
-      const catKey = catKeys[Math.floor(pseudoRandom() * catKeys.length)];
-      const mat = materials[catKey];
-      const name = mat.names[Math.floor(pseudoRandom() * mat.names.length)];
-      const weight = Math.floor(pseudoRandom() * 500) + 20;
-      const daysAgo = Math.floor(pseudoRandom() * 60);
-      const d = new Date();
-      d.setDate(d.getDate() - daysAgo);
-      scans.push({
-        lat,
-        lng,
-        material: name,
-        category: mat.category,
-        weight,
-        date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      });
-    }
-  });
-  return scans;
-}
 
 const CATEGORY_COLORS: Record<string, string> = {
   recyclable: "#22c55e",
@@ -99,9 +37,25 @@ export default function HeatmapPage() {
   const [showScans, setShowScans] = useState(true);
   const [showHeat, setShowHeat] = useState(true);
   const { selectedState, stateConfig } = useStateSelection();
-  const scans = generateScans(selectedState);
-  const cities = CITY_DATA[selectedState] || [];
-  const totalScans = cities.reduce((a, c) => a + c.scans, 0);
+
+  const stats = useQuery(api.scans.getDashboardStats, { state: selectedState });
+  const scanPoints = useQuery(api.scans.getScansWithLocation, { state: selectedState });
+
+  /* City data derived from DB stats */
+  const cities = useMemo(() => {
+    if (!stats?.cityStats) return [];
+    return Object.entries(stats.cityStats)
+      .filter(([name]) => CITY_COORDS[name])
+      .map(([name, data]) => ({
+        name,
+        lat: CITY_COORDS[name].lat,
+        lng: CITY_COORDS[name].lng,
+        scans: data.scans,
+      }))
+      .sort((a, b) => b.scans - a.scans);
+  }, [stats]);
+
+  const totalScans = stats?.totalScans ?? 0;
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -143,11 +97,13 @@ export default function HeatmapPage() {
       /* ── State outline ── */
       try {
         const res = await fetch(US_GEOJSON_URL);
+        if (cancelled) return;
         const usStates = await res.json();
+        if (cancelled) return;
         const feat = usStates.features?.find(
           (f: any) => f.properties?.name === selectedState
         );
-        if (feat && !cancelled) {
+        if (feat) {
           const layer = L.geoJSON(feat, {
             style: { color: "#4ade80", weight: 2, fillColor: "#22c55e", fillOpacity: 0.05, dashArray: "6 4" },
           }).addTo(map);
@@ -155,9 +111,11 @@ export default function HeatmapPage() {
         }
       } catch {}
 
-      /* ── Heat layer ── */
-      if (showHeat && (L as any).heatLayer) {
-        const heatPoints = scans.map((s) => [s.lat, s.lng, 0.6] as [number, number, number]);
+      if (cancelled) return;
+
+      /* ── Heat layer from real scan locations ── */
+      if (showHeat && (L as any).heatLayer && scanPoints && scanPoints.length > 0) {
+        const heatPoints = scanPoints.map((s) => [s.lat, s.lng, 0.6] as [number, number, number]);
         (L as any)
           .heatLayer(heatPoints, {
             radius: 30,
@@ -176,10 +134,14 @@ export default function HeatmapPage() {
           .addTo(map);
       }
 
+      if (cancelled) return;
+
       /* ── Individual scan markers ── */
-      if (showScans) {
-        scans.forEach((scan) => {
-          const color = CATEGORY_COLORS[scan.category];
+      if (showScans && scanPoints) {
+        for (const scan of scanPoints) {
+          if (cancelled) return;
+          const mainCat = scan.categories[0] || "recyclable";
+          const color = CATEGORY_COLORS[mainCat] || "#22c55e";
           const icon = L.divIcon({
             className: "",
             html: `<div style="width:8px;height:8px;border-radius:50%;background:${color};border:1.5px solid rgba(255,255,255,0.7);box-shadow:0 0 4px ${color};"></div>`,
@@ -191,18 +153,20 @@ export default function HeatmapPage() {
             .addTo(map)
             .bindPopup(
               `<div style="font-family:system-ui;font-size:12px;min-width:140px;">
-                <strong style="color:${color};">● ${scan.material}</strong><br/>
-                <span style="color:#9ca3af;">Category:</span> <span style="text-transform:capitalize;">${scan.category}</span><br/>
-                <span style="color:#9ca3af;">Weight:</span> ${scan.weight} lbs<br/>
-                <span style="color:#9ca3af;">Date:</span> ${scan.date}
+                <strong style="color:${color};">● ${mainCat}</strong><br/>
+                <span style="color:#9ca3af;">City:</span> ${scan.city}<br/>
+                <span style="color:#9ca3af;">Weight:</span> ${scan.weight} lbs
               </div>`,
               { className: "gl-popup" }
             );
-        });
+        }
       }
 
+      if (cancelled) return;
+
       /* ── City labels ── */
-      cities.forEach((city) => {
+      for (const city of cities) {
+        if (cancelled) return;
         const icon = L.divIcon({
           className: "",
           html: `<div style="font-family:system-ui;text-align:center;pointer-events:none;">
@@ -213,9 +177,15 @@ export default function HeatmapPage() {
           iconAnchor: [50, -8],
         });
         L.marker([city.lat, city.lng], { icon, interactive: false }).addTo(map);
-      });
+      }
 
+      if (cancelled) return;
       setReady(true);
+
+      /* Fix Leaflet tile alignment after layout settles */
+      requestAnimationFrame(() => { if (!cancelled) map.invalidateSize(); });
+      setTimeout(() => { if (!cancelled) map.invalidateSize(); }, 200);
+      setTimeout(() => { if (!cancelled) map.invalidateSize(); }, 1000);
     })();
 
     return () => {
@@ -225,7 +195,7 @@ export default function HeatmapPage() {
         (mapRef.current as any)._leafletMap = null;
       }
     };
-  }, [selectedState, stateConfig, showScans, showHeat]);
+  }, [selectedState, stateConfig, showScans, showHeat, scanPoints, cities]);
 
   return (
     <div className="flex min-h-screen bg-[#0f1714]">
@@ -277,7 +247,7 @@ export default function HeatmapPage() {
             </div>
             <div className="bg-[#1a2420] rounded-xl p-4 border border-green-900/30">
               <p className="text-[10px] uppercase tracking-wider text-green-500/60">Scan Points</p>
-              <p className="text-xl font-bold text-white mt-1">{scans.length}</p>
+              <p className="text-xl font-bold text-white mt-1">{scanPoints?.length ?? 0}</p>
             </div>
             <div className="bg-[#1a2420] rounded-xl p-4 border border-green-900/30">
               <p className="text-[10px] uppercase tracking-wider text-green-500/60">Hottest Zone</p>
@@ -342,8 +312,8 @@ export default function HeatmapPage() {
               </thead>
               <tbody>
                 {cities.map((city) => {
-                  const pct = ((city.scans / totalScans) * 100).toFixed(1);
-                  const barPct = (city.scans / cities[0].scans) * 100;
+                  const pct = totalScans > 0 ? ((city.scans / totalScans) * 100).toFixed(1) : "0";
+                  const barPct = cities[0]?.scans ? (city.scans / cities[0].scans) * 100 : 0;
                   return (
                     <tr key={city.name} className="border-b border-green-900/10 hover:bg-green-900/10 transition-colors">
                       <td className="px-6 py-3">
@@ -373,22 +343,24 @@ export default function HeatmapPage() {
                     </tr>
                   );
                 })}
+                {cities.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                      {!stats ? "Loading..." : "No city data available"}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Global styles for popups */}
+        {/* Leaflet overrides are now in globals.css for reliable specificity */}
         <style jsx global>{`
-          .gl-popup .leaflet-popup-content-wrapper {
-            background: #1a2420 !important;
-            color: #fff !important;
-            border: 1px solid rgba(34,197,94,0.2) !important;
-            border-radius: 12px !important;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
-          }
-          .gl-popup .leaflet-popup-tip {
-            background: #1a2420 !important;
+          .leaflet-container {
+            width: 100% !important;
+            height: 100% !important;
+            background: #0f1714 !important;
           }
         `}</style>
       </main>

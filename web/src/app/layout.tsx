@@ -5,7 +5,7 @@ import { StateProvider } from "@/context/StateContext";
 
 export const metadata: Metadata = {
   title: "GreenLens AI | National Non-Profit",
-  description: "AI-powered construction waste classification — a national non-profit initiative piloting across Georgia & Tennessee.",
+  description: "AI-powered waste classification — a national non-profit initiative piloting across Georgia & Tennessee.",
 };
 
 export default function RootLayout({

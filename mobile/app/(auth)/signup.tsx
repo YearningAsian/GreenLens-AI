@@ -79,7 +79,7 @@ export default function SignupScreen() {
             </View>
             <Text style={styles.brandName}>Join GreenLens</Text>
             <Text style={styles.brandTagline}>
-              Start making an impact on construction waste in Georgia
+              Start making an impact on waste in your community
             </Text>
           </View>
 

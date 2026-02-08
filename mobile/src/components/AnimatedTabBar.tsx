@@ -23,6 +23,7 @@ const TAB_ICONS: Record<string, { outline: string; filled: string }> = {
   index: { outline: "home-outline", filled: "home" },
   scan: { outline: "scan-outline", filled: "scan" },
   impact: { outline: "leaf-outline", filled: "leaf" },
+  map: { outline: "map-outline", filled: "map" },
   centers: { outline: "location-outline", filled: "location" },
 };
 

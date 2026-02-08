@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Dimensions,
   TouchableOpacity,
-  Modal,
   Animated,
   Easing,
 } from "react-native";
@@ -15,55 +14,194 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../src/constants/theme";
 import ProfileHeader from "../../src/components/ProfileHeader";
 import { useAuth } from "../../src/context/AuthContext";
+import { fetchUserScans } from "../../src/services/api";
+import AnimatedNumber from "../../src/components/AnimatedNumber";
 
 const { width } = Dimensions.get("window");
 
 const badges = [
-  { id: "first-scan", label: "First Scan", emoji: "🌱", earned: true, description: "Completed your very first waste scan. Every green journey starts with a single step!" },
-  { id: "100-lbs", label: "100 lbs Club", emoji: "💪", earned: true, description: "Diverted over 100 pounds of construction waste from landfills. That's real impact!" },
-  { id: "zero-waste-week", label: "Zero Waste Week", emoji: "🏆", earned: true, description: "Achieved a full week where 100% of scanned materials were diverted from landfills." },
-  { id: "eco-champion", label: "Eco Champion", emoji: "🌍", earned: true, description: "Reached top 10% of all volunteers in CO₂ savings. You're leading the charge!" },
-  { id: "ton-diverted", label: "Ton Diverted", emoji: "🎉", earned: false, description: "Divert a full ton (2,000 lbs) of waste from landfills. Keep going — you're almost there!" },
-  { id: "team-player", label: "Team Player", emoji: "🤝", earned: false, description: "Complete 50 scans across at least 3 different job sites. Collaboration makes the difference." },
+  { id: "first-scan", label: "First Scan", emoji: "🌱", threshold: 1, description: "Completed your very first waste scan. Every green journey starts with a single step!" },
+  { id: "100-lbs", label: "100 lbs Club", emoji: "💪", threshold: 100, description: "Diverted over 100 pounds of waste from landfills. That's real impact!" },
+  { id: "zero-waste-week", label: "Zero Waste Week", emoji: "🏆", threshold: 0, description: "Achieved a full week where 100% of scanned materials were diverted from landfills." },
+  { id: "eco-champion", label: "Eco Champion", emoji: "🌍", threshold: 0, description: "Reached top 10% of all volunteers in CO₂ savings. You're leading the charge!" },
+  { id: "ton-diverted", label: "2K Diverted", emoji: "🎉", threshold: 2000, description: "Divert 2,000 lbs of waste from landfills. Keep going — you're almost there!" },
+  { id: "team-player", label: "Team Player", emoji: "🤝", threshold: 50, description: "Complete 50 scans across at least 3 different locations. Collaboration makes the difference." },
 ];
 
-const materialBreakdown = [
-  { name: "Recyclable", lbs: 6400, percent: 52, color: "#22c55e" },
-  { name: "Organic", lbs: 3950, percent: 32, color: "#f59e0b" },
-  { name: "Non-Recyclable", lbs: 2100, percent: 16, color: "#ef4444" },
-];
+/* ── Flip Badge Card Component ── */
+function FlipBadge({ badge, earned }: { badge: typeof badges[0]; earned: boolean }) {
+  const flipAnim = useRef(new Animated.Value(0)).current;
+  const [flipped, setFlipped] = useState(false);
+  const animating = useRef(false);
+
+  const flip = useCallback(() => {
+    if (animating.current) return; // block taps while animating
+    animating.current = true;
+    const toValue = flipped ? 0 : 1;
+    Animated.timing(flipAnim, {
+      toValue,
+      duration: 500,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(() => {
+      setFlipped(!flipped);
+      animating.current = false;
+    });
+  }, [flipped, flipAnim]);
+
+  const frontInterpolate = flipAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: ["0deg", "90deg", "180deg"],
+  });
+  const backInterpolate = flipAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: ["180deg", "270deg", "360deg"],
+  });
+  const frontOpacity = flipAnim.interpolate({
+    inputRange: [0, 0.5, 0.5, 1],
+    outputRange: [1, 1, 0, 0],
+  });
+  const backOpacity = flipAnim.interpolate({
+    inputRange: [0, 0.5, 0.5, 1],
+    outputRange: [0, 0, 1, 1],
+  });
+
+  const cardW = (width - 60) / 2;
+
+  return (
+    <TouchableOpacity activeOpacity={0.9} onPress={flip} style={{ width: cardW }}>
+      <View style={{ width: cardW, height: cardW * 0.7 }}>
+        {/* Front face */}
+        <Animated.View
+          style={[
+            styles.badgeCard,
+            !earned && styles.badgeLocked,
+            {
+              width: cardW,
+              height: cardW * 0.7,
+              position: "absolute",
+              backfaceVisibility: "hidden",
+              transform: [{ perspective: 800 }, { rotateY: frontInterpolate }],
+              opacity: frontOpacity,
+            },
+          ]}
+        >
+          <Text style={styles.badgeEmoji}>{badge.emoji}</Text>
+          <Text style={[styles.badgeLabel, !earned && styles.badgeLabelLocked]}>
+            {badge.label}
+          </Text>
+          {!earned && (
+            <Ionicons name="lock-closed" size={10} color={COLORS.textLight} />
+          )}
+        </Animated.View>
+
+        {/* Back face */}
+        <Animated.View
+          style={[
+            styles.badgeCardBack,
+            !earned && { backgroundColor: "#f3f4f6" },
+            {
+              width: cardW,
+              height: cardW * 0.7,
+              position: "absolute",
+              backfaceVisibility: "hidden",
+              transform: [{ perspective: 800 }, { rotateY: backInterpolate }],
+              opacity: backOpacity,
+            },
+          ]}
+        >
+          <Text style={styles.badgeBackDescription} numberOfLines={4}>
+            {badge.description}
+          </Text>
+          {earned ? (
+            <View style={styles.earnedTagSmall}>
+              <Ionicons name="checkmark-circle" size={11} color="#22c55e" />
+              <Text style={styles.earnedTagSmallText}>Earned</Text>
+            </View>
+          ) : (
+            <View style={styles.lockedTagSmall}>
+              <Ionicons name="lock-closed" size={10} color={COLORS.textLight} />
+              <Text style={styles.lockedTagSmallText}>Locked</Text>
+            </View>
+          )}
+        </Animated.View>
+      </View>
+    </TouchableOpacity>
+  );
+}
 
 export default function ImpactScreen() {
-  const [selectedBadge, setSelectedBadge] = useState<typeof badges[0] | null>(null);
-  const spinAnim = useRef(new Animated.Value(0)).current;
-  const { completeTask } = useAuth();
+  const { completeTask, user } = useAuth();
+
+  // Derive stats from DB user
+  const totalWeight = user?.totalWeightDiverted ?? 0;
+  const totalCo2 = user?.totalCo2Saved ?? 0;
+  const totalScans = user?.totalScans ?? 0;
+  const streakDays = user?.streakDays ?? 0;
+
+  // Fetch user scans to compute material breakdown
+  const [scanCategories, setScanCategories] = useState<{ recyclable: number; organic: number; "non-recyclable": number }>({
+    recyclable: 0, organic: 0, "non-recyclable": 0,
+  });
+
+  useEffect(() => {
+    if (!user?.email) return;
+    (async () => {
+      try {
+        const scans = await fetchUserScans(user.email);
+        const agg = { recyclable: 0, organic: 0, "non-recyclable": 0 };
+        if (scans && Array.isArray(scans)) {
+          for (const s of scans) {
+            for (const c of s.categories || []) {
+              const key = c.name as keyof typeof agg;
+              if (key in agg) agg[key] += c.weight_estimate_lbs || 0;
+            }
+          }
+        }
+        setScanCategories(agg);
+      } catch (e) {
+        // Fall back: approximate from total weight
+        setScanCategories({
+          recyclable: Math.round(totalWeight * 0.52),
+          organic: Math.round(totalWeight * 0.32),
+          "non-recyclable": Math.round(totalWeight * 0.16),
+        });
+      }
+    })();
+  }, [user?.email, totalWeight]);
+
+  const materialBreakdown = useMemo(() => {
+    const total = scanCategories.recyclable + scanCategories.organic + scanCategories["non-recyclable"];
+    if (total === 0) return [
+      { name: "Recyclable", lbs: 0, percent: 0, color: "#22c55e" },
+      { name: "Organic", lbs: 0, percent: 0, color: "#f59e0b" },
+      { name: "Non-Recyclable", lbs: 0, percent: 0, color: "#ef4444" },
+    ];
+    return [
+      { name: "Recyclable", lbs: Math.round(scanCategories.recyclable), percent: Math.round((scanCategories.recyclable / total) * 100), color: "#22c55e" },
+      { name: "Organic", lbs: Math.round(scanCategories.organic), percent: Math.round((scanCategories.organic / total) * 100), color: "#f59e0b" },
+      { name: "Non-Recyclable", lbs: Math.round(scanCategories["non-recyclable"]), percent: Math.round((scanCategories["non-recyclable"] / total) * 100), color: "#ef4444" },
+    ];
+  }, [scanCategories]);
+
+  // Determine earned badges from DB data
+  const badgesWithStatus = useMemo(() => badges.map(b => {
+    let earned = false;
+    switch (b.id) {
+      case "first-scan": earned = totalScans >= 1; break;
+      case "100-lbs": earned = totalWeight >= 100; break;
+      case "zero-waste-week": earned = streakDays >= 7; break;
+      case "eco-champion": earned = totalCo2 >= 1000; break;
+      case "ton-diverted": earned = totalWeight >= 2000; break;
+      case "team-player": earned = totalScans >= 50; break;
+    }
+    return { ...b, earned };
+  }), [totalScans, totalWeight, streakDays, totalCo2]);
 
   // Auto-complete "Check impact" task on mount
   useEffect(() => {
     completeTask("impact");
   }, []);
-
-  useEffect(() => {
-    if (selectedBadge) {
-      spinAnim.setValue(0);
-      Animated.timing(spinAnim, {
-        toValue: 1,
-        duration: 800,
-        easing: Easing.out(Easing.back(1.5)),
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [selectedBadge]);
-
-  const spinInterpolation = spinAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
-
-  const scaleInterpolation = spinAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0.3, 1.15, 1],
-  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -74,12 +212,12 @@ export default function ImpactScreen() {
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: "#f0fdf4" }]}>
             <Ionicons name="scale-outline" size={24} color={COLORS.primary} />
-            <Text style={styles.statValue}>12,450</Text>
+            <AnimatedNumber value={totalWeight} style={styles.statValue} />
             <Text style={styles.statLabel}>lbs diverted</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: "#f5f3ff" }]}>
             <Ionicons name="cloud-outline" size={24} color={COLORS.violet} />
-            <Text style={[styles.statValue, { color: COLORS.violet }]}>2,840</Text>
+            <AnimatedNumber value={totalCo2} style={[styles.statValue, { color: COLORS.violet }]} />
             <Text style={styles.statLabel}>kg CO₂ saved</Text>
           </View>
         </View>
@@ -87,12 +225,12 @@ export default function ImpactScreen() {
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: "#eff6ff" }]}>
             <Ionicons name="camera-outline" size={24} color={COLORS.info} />
-            <Text style={[styles.statValue, { color: COLORS.info }]}>87</Text>
+            <AnimatedNumber value={totalScans} style={[styles.statValue, { color: COLORS.info }]} />
             <Text style={styles.statLabel}>total scans</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: "#fef3c7" }]}>
             <Ionicons name="flame-outline" size={24} color={COLORS.warning} />
-            <Text style={[styles.statValue, { color: COLORS.warning }]}>28</Text>
+            <AnimatedNumber value={streakDays} style={[styles.statValue, { color: COLORS.warning }]} />
             <Text style={styles.statLabel}>day streak</Text>
           </View>
         </View>
@@ -124,84 +262,11 @@ export default function ImpactScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Badges Earned</Text>
           <View style={styles.badgesGrid}>
-            {badges.map((badge) => (
-              <TouchableOpacity
-                key={badge.id}
-                activeOpacity={0.7}
-                onPress={() => setSelectedBadge(badge)}
-                style={[
-                  styles.badgeCard,
-                  !badge.earned && styles.badgeLocked,
-                ]}
-              >
-                <Text style={styles.badgeEmoji}>{badge.emoji}</Text>
-                <Text
-                  style={[
-                    styles.badgeLabel,
-                    !badge.earned && styles.badgeLabelLocked,
-                  ]}
-                >
-                  {badge.label}
-                </Text>
-                {!badge.earned && (
-                  <Ionicons name="lock-closed" size={10} color={COLORS.textLight} />
-                )}
-              </TouchableOpacity>
+            {badgesWithStatus.map((badge) => (
+              <FlipBadge key={badge.id} badge={badge} earned={badge.earned} />
             ))}
           </View>
         </View>
-
-        {/* Badge Detail Modal */}
-        <Modal
-          visible={!!selectedBadge}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setSelectedBadge(null)}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setSelectedBadge(null)}
-          >
-            <TouchableOpacity activeOpacity={1} style={styles.modalCard}>
-              <Animated.Text
-                style={[
-                  styles.modalEmoji,
-                  {
-                    transform: [
-                      { rotate: spinInterpolation },
-                      { scale: scaleInterpolation },
-                    ],
-                  },
-                ]}
-              >
-                {selectedBadge?.emoji}
-              </Animated.Text>
-              <Text style={styles.modalTitle}>{selectedBadge?.label}</Text>
-              {selectedBadge && !selectedBadge.earned && (
-                <View style={styles.lockedTag}>
-                  <Ionicons name="lock-closed" size={11} color={COLORS.textLight} />
-                  <Text style={styles.lockedTagText}>Locked</Text>
-                </View>
-              )}
-              <Text style={styles.modalDescription}>
-                {selectedBadge?.description}
-              </Text>
-              {selectedBadge?.earned && (
-                <View style={styles.earnedTag}>
-                  <Ionicons name="checkmark-circle" size={14} color="#22c55e" />
-                  <Text style={styles.earnedTagText}>Earned</Text>
-                </View>
-              )}
-              <TouchableOpacity
-                style={styles.modalCloseBtn}
-                onPress={() => setSelectedBadge(null)}
-              >
-                <Text style={styles.modalCloseBtnText}>Close</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </Modal>
       </ScrollView>
     </SafeAreaView>
   );
@@ -289,20 +354,21 @@ const styles = StyleSheet.create({
   badgesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: 12,
     justifyContent: "center",
   },
   badgeCard: {
-    width: (width - 60) / 3,
+    width: (width - 60) / 2,
     backgroundColor: COLORS.white,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 12,
     alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
   badgeLocked: {
     opacity: 0.45,
@@ -311,8 +377,8 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   badgeLabel: {
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "700",
     color: COLORS.text,
     marginTop: 4,
     textAlign: "center",
@@ -320,85 +386,52 @@ const styles = StyleSheet.create({
   badgeLabelLocked: {
     color: COLORS.textLight,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+  /* ── Flip card back ── */
+  badgeCardBack: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 14,
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
-    padding: 40,
-  },
-  modalCard: {
-    backgroundColor: "#fff",
-    borderRadius: 24,
-    padding: 32,
-    alignItems: "center",
-    width: "100%",
-    maxWidth: 300,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  modalEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: COLORS.text,
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  modalDescription: {
-    fontSize: 14,
+  badgeBackDescription: {
+    fontSize: 13,
     color: COLORS.textSecondary,
     textAlign: "center",
-    lineHeight: 21,
-    marginTop: 8,
-    marginBottom: 16,
+    lineHeight: 18,
+    marginBottom: 6,
   },
-  earnedTag: {
+  earnedTagSmall: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 3,
     backgroundColor: "#f0fdf4",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
-  earnedTagText: {
-    fontSize: 12,
+  earnedTagSmallText: {
+    fontSize: 9,
     fontWeight: "700",
     color: "#22c55e",
   },
-  lockedTag: {
+  lockedTagSmall: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 3,
     backgroundColor: "#f3f4f6",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
-  lockedTagText: {
-    fontSize: 12,
+  lockedTagSmallText: {
+    fontSize: 9,
     fontWeight: "600",
     color: COLORS.textLight,
-  },
-  modalCloseBtn: {
-    marginTop: 4,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
-  },
-  modalCloseBtnText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#fff",
   },
 });
